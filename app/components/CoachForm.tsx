@@ -1,6 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 type Mode = "practice_plan" | "warmups" | "chords" | "next_session";
 
@@ -31,17 +33,15 @@ type PlanJSON = {
 type DebugInfo = {
   parseError?: string;
   raw?: string;
-  planInstrument?: string;
-  planMode?: string;
-  reason?: string;
-  firstMeaningfulLine?: string;
+  youtube?: { error?: string; query?: string };
+  youtubeQuery?: string;
 };
 
 function planToMarkdown(plan: PlanJSON): string {
   const lines: string[] = [];
-  lines.push(`# Instrument: ${plan.instrument}`);
+
+  lines.push(`# ${plan.instrument} – ${plan.mode.replaceAll("_", " ")}`);
   lines.push(``);
-  lines.push(`**Mode:** ${plan.mode.replaceAll("_", " ")}`);
   lines.push(`**Level:** ${plan.level}`);
   lines.push(`**Genre:** ${plan.genre}`);
   lines.push(`**Goals:** ${plan.goals}`);
@@ -50,6 +50,7 @@ function planToMarkdown(plan: PlanJSON): string {
   lines.push(`- ${plan.focusMetric}`);
   lines.push(``);
   lines.push(`## Day-by-day plan`);
+
   for (const d of plan.dayByDay) {
     lines.push(`### Day ${d.day}: ${d.title}`);
     for (const b of d.blocks) {
@@ -60,10 +61,13 @@ function planToMarkdown(plan: PlanJSON): string {
       lines.push(``);
     }
   }
+
   if (plan.notes?.length) {
     lines.push(`## Notes`);
     for (const n of plan.notes) lines.push(`- ${n}`);
+    lines.push(``);
   }
+
   return lines.join("\n");
 }
 
@@ -151,17 +155,45 @@ export default function CoachForm({
   const [daysPerWeek, setDaysPerWeek] = useState("5");
   const [lastSessionNotes, setLastSessionNotes] = useState("");
 
-  const [resultMarkdown, setResultMarkdown] = useState<string>("");
+  // Output
+  const [resultMd, setResultMd] = useState<string>("");
   const [loading, setLoading] = useState(false);
+
+  // Videos returned by /api/coach
   const [videos, setVideos] = useState<VideoRec[]>([]);
 
+  // Debug
   const [serverReceived, setServerReceived] = useState<any>(null);
   const [apiVersion, setApiVersion] = useState<string>("");
   const [debugInfo, setDebugInfo] = useState<DebugInfo | null>(null);
 
+  // Sheet music / tabs UI (restored)
+  const [includeSheetMusic, setIncludeSheetMusic] = useState(false);
+  const [songName, setSongName] = useState("");
+
+  const ugUrl = songName.trim()
+    ? `https://www.ultimate-guitar.com/search.php?search_type=title&value=${encodeURIComponent(
+        songName.trim()
+      )}`
+    : "";
+
+  const ytSongUrl = songName.trim()
+    ? `https://www.youtube.com/results?search_query=${encodeURIComponent(
+        `${songName.trim()} ${instrument} tutorial`
+      )}`
+    : "";
+
+  const smartYouTubeSearchUrl = useMemo(() => {
+    const q = `${instrument} ${level} ${genre} ${mode.replaceAll("_", " ")} ${goals}`;
+    return `https://www.youtube.com/results?search_query=${encodeURIComponent(q)}`;
+  }, [instrument, level, genre, mode, goals]);
+
+  const field =
+    "rounded-2xl border border-white/18 ring-1 ring-white/10 bg-zinc-950/55 px-4 py-3 text-zinc-100 placeholder:text-zinc-600 outline-none transition focus:ring-2 focus:ring-white/20 focus:border-white/30 shadow-sm";
+
   async function runCoach() {
     setLoading(true);
-    setResultMarkdown("");
+    setResultMd("");
     setVideos([]);
     setServerReceived(null);
     setApiVersion("");
@@ -189,26 +221,27 @@ export default function CoachForm({
       if (data?.received) setServerReceived(data.received);
       if (data?.debug) setDebugInfo(data.debug);
 
-      // ✅ New API returns ok + plan
       if (data?.ok && data?.plan) {
-        setResultMarkdown(planToMarkdown(data.plan as PlanJSON));
+        setResultMd(planToMarkdown(data.plan as PlanJSON));
       } else {
-        setResultMarkdown(data?.error || "No response.");
+        setResultMd(data?.error || "No response.");
       }
 
       setVideos(Array.isArray(data?.videos) ? data.videos : []);
     } catch {
-      setResultMarkdown("Something went wrong. Please try again.");
+      setResultMd("Something went wrong. Please try again.");
     } finally {
       setLoading(false);
     }
   }
 
+  // Fallback videos if API returns none
   const effectiveVideos = useMemo(() => {
     if (videos && videos.length > 0) return videos;
     return clientFallbackVideos(instrument);
   }, [videos, instrument]);
 
+  // Only watch/shorts links embed. Search links will show as links only.
   const embedded = useMemo(() => {
     const items: { id: string; title: string; url: string }[] = [];
     for (const v of effectiveVideos) {
@@ -218,11 +251,9 @@ export default function CoachForm({
     return items.slice(0, 2);
   }, [effectiveVideos]);
 
-  const field =
-    "rounded-2xl border border-white/18 ring-1 ring-white/10 bg-zinc-950/55 px-4 py-3 text-zinc-100 placeholder:text-zinc-600 outline-none transition focus:ring-2 focus:ring-white/20 focus:border-white/30 shadow-sm";
-
   return (
     <div className="grid gap-10">
+      {/* ===== FORM ===== */}
       <div className="grid gap-6 md:grid-cols-3">
         <label className="grid gap-1 text-sm">
           <span className="text-zinc-400">Mode</span>
@@ -236,7 +267,11 @@ export default function CoachForm({
 
         <label className="grid gap-1 text-sm">
           <span className="text-zinc-400">Instrument</span>
-          <select value={instrument} onChange={(e) => onInstrumentChange(e.target.value)} className={field}>
+          <select
+            value={instrument}
+            onChange={(e) => onInstrumentChange(e.target.value)}
+            className={field}
+          >
             <option value="Guitar">Guitar</option>
             <option value="Drums">Drums</option>
             <option value="Bass">Bass</option>
@@ -279,9 +314,63 @@ export default function CoachForm({
 
       <label className="grid gap-1 text-sm">
         <span className="text-zinc-400">Last session notes</span>
-        <textarea rows={3} value={lastSessionNotes} onChange={(e) => setLastSessionNotes(e.target.value)} className={field} />
+        <textarea
+          rows={3}
+          value={lastSessionNotes}
+          onChange={(e) => setLastSessionNotes(e.target.value)}
+          className={field}
+        />
       </label>
 
+      {/* ===== SHEET MUSIC / TABS (RESTORED) ===== */}
+      <div className="rounded-3xl border border-white/18 ring-1 ring-white/10 bg-zinc-950/55 p-5 shadow-sm">
+        <div className="flex items-center gap-3 mb-3">
+          <input
+            type="checkbox"
+            checked={includeSheetMusic}
+            onChange={(e) => setIncludeSheetMusic(e.target.checked)}
+            className="h-4 w-4 accent-white"
+          />
+          <span className="text-sm text-zinc-200 font-medium">
+            Include sheet music / tabs
+          </span>
+        </div>
+
+        <label className="grid gap-2">
+          <span className="text-sm text-zinc-400">Song name</span>
+          <input
+            value={songName}
+            onChange={(e) => setSongName(e.target.value)}
+            placeholder="e.g. Tom Sawyer"
+            disabled={!includeSheetMusic}
+            className={`${field} ${includeSheetMusic ? "" : "opacity-50"}`}
+          />
+        </label>
+
+        {includeSheetMusic && songName.trim() ? (
+          <div className="mt-3 flex flex-wrap gap-3">
+            <a
+              href={ugUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="rounded-xl border border-white/20 bg-zinc-950/60 px-4 py-2 text-sm text-zinc-100 hover:bg-zinc-900"
+            >
+              Open Ultimate Guitar ↗
+            </a>
+
+            <a
+              href={ytSongUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="rounded-xl border border-white/20 bg-zinc-950/60 px-4 py-2 text-sm text-zinc-100 hover:bg-zinc-900"
+            >
+              Search YouTube for this song ↗
+            </a>
+          </div>
+        ) : null}
+      </div>
+
+      {/* ===== BUTTON ===== */}
       <button
         onClick={runCoach}
         disabled={loading}
@@ -290,8 +379,11 @@ export default function CoachForm({
         {loading ? "Generating practice plan…" : "Generate Practice Plan"}
       </button>
 
+      {/* ===== OUTPUT ===== */}
       <div className="rounded-3xl border border-white/25 ring-1 ring-white/15 bg-zinc-950/55 p-6 shadow-inner">
-        <div className="mb-3 text-xs uppercase tracking-widest text-zinc-500">Lesson Output</div>
+        <div className="mb-3 text-xs uppercase tracking-widest text-zinc-500">
+          Lesson Output
+        </div>
 
         {apiVersion ? (
           <div className="mb-2 text-xs text-zinc-500">
@@ -308,30 +400,48 @@ export default function CoachForm({
           </div>
         ) : null}
 
-        {debugInfo?.parseError || debugInfo?.raw ? (
+        {(debugInfo?.youtube?.query || debugInfo?.youtubeQuery) ? (
           <div className="mb-4 rounded-2xl border border-white/10 bg-zinc-950/60 p-4 text-xs text-zinc-400">
             <div className="text-zinc-300 font-medium mb-1">Debug</div>
-            {debugInfo.parseError ? <div>parseError: <span className="text-zinc-200">{debugInfo.parseError}</span></div> : null}
-            {debugInfo.raw ? (
-              <div className="mt-2">
-                raw (truncated):
-                <pre className="mt-2 whitespace-pre-wrap text-zinc-300">{debugInfo.raw}</pre>
+            <div>
+              youtubeQuery:{" "}
+              <span className="text-zinc-200">
+                {debugInfo.youtubeQuery || debugInfo.youtube?.query}
+              </span>
+            </div>
+            {debugInfo.youtube?.error ? (
+              <div>
+                youtubeError: <span className="text-zinc-200">{debugInfo.youtube.error}</span>
               </div>
             ) : null}
           </div>
         ) : null}
 
-        <pre className="whitespace-pre-wrap text-zinc-100">{resultMarkdown || "Your structured lesson plan will appear here."}</pre>
+        <div className="prose prose-invert max-w-none prose-p:my-2 prose-ul:my-2 prose-li:my-1 prose-h2:mt-4 prose-h2:mb-2 prose-h3:mt-3 prose-h3:mb-1">
+          {resultMd ? (
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>{resultMd}</ReactMarkdown>
+          ) : (
+            <p className="text-zinc-500">Your structured lesson plan will appear here.</p>
+          )}
+        </div>
 
-        {resultMarkdown ? (
+        {/* ===== VIDEOS ===== */}
+        {resultMd ? (
           <div className="mt-8 border-t border-white/10 pt-6">
-            <div className="mb-3 text-xs uppercase tracking-widest text-zinc-500">Recommended Videos</div>
+            <div className="mb-3 text-xs uppercase tracking-widest text-zinc-500">
+              Recommended Videos
+            </div>
 
             {embedded.length > 0 ? (
               <div className="grid gap-5 md:grid-cols-2">
                 {embedded.map((v) => (
-                  <div key={v.id} className="overflow-hidden rounded-2xl border border-white/18 bg-zinc-950/60">
-                    <div className="px-4 py-3 text-sm text-zinc-200 border-b border-white/10">{v.title}</div>
+                  <div
+                    key={v.id}
+                    className="overflow-hidden rounded-2xl border border-white/18 bg-zinc-950/60"
+                  >
+                    <div className="px-4 py-3 text-sm text-zinc-200 border-b border-white/10">
+                      {v.title}
+                    </div>
                     <div className="aspect-video w-full">
                       <iframe
                         className="h-full w-full"
@@ -355,7 +465,37 @@ export default function CoachForm({
                   </div>
                 ))}
               </div>
-            ) : null}
+            ) : (
+              <p className="text-zinc-500">
+                No embeddable videos found (links may still be available below).
+              </p>
+            )}
+
+            <div className="mt-4 flex flex-wrap gap-3">
+              <a
+                href={smartYouTubeSearchUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="rounded-xl border border-white/20 bg-zinc-950/60 px-4 py-2 text-sm text-zinc-100 hover:bg-zinc-900"
+              >
+                Search YouTube for more ↗
+              </a>
+
+              {effectiveVideos.slice(0, 4).map((v) => (
+                <a
+                  key={v.url}
+                  href={v.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="rounded-xl border border-white/20 bg-zinc-950/60 px-4 py-2 text-sm text-zinc-100 hover:bg-zinc-900"
+                >
+                  {(v.title || "Open video").length > 30
+                    ? (v.title || "Open video").slice(0, 30) + "…"
+                    : (v.title || "Open video")}{" "}
+                  ↗
+                </a>
+              ))}
+            </div>
           </div>
         ) : null}
       </div>
