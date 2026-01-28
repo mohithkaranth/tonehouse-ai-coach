@@ -3,18 +3,12 @@ import { NextResponse } from "next/server";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-// Version stamp so you can confirm what’s deployed
-const COACH_API_VERSION = "coach-v8-header-tolerant-2026-01-28";
+const COACH_API_VERSION = "coach-v9-relaxed-guitar-check-2026-01-28";
 
 type VideoRec = { title: string; url: string };
 
 function toLower(s: unknown) {
   return String(s ?? "").toLowerCase();
-}
-
-function includesAny(text: string, keywords: string[]) {
-  const t = toLower(text);
-  return keywords.some((k) => t.includes(k));
 }
 
 function pickVideos(params: { instrument: string }): VideoRec[] {
@@ -58,16 +52,12 @@ function pickVideos(params: { instrument: string }): VideoRec[] {
   return [];
 }
 
-/**
- * Extract the first meaningful line (ignores empty lines and common preambles)
- */
+/** Ignore empty lines + common “Sure!/Here’s…” preambles */
 function firstMeaningfulLine(text: string): string {
   const lines = String(text ?? "").split(/\r?\n/).map((l) => l.trim());
-
   for (const l of lines) {
     if (!l) continue;
 
-    // Ignore typical LLM preamble lines
     const lower = l.toLowerCase();
     if (
       lower === "sure!" ||
@@ -83,110 +73,131 @@ function firstMeaningfulLine(text: string): string {
 
     return l;
   }
-
   return "";
 }
 
-/**
- * Normalize a line so we accept markdown variants like:
- * "**Instrument: Drums**" or "`Instrument: Drums`"
- */
-function normalizeHeaderLine(line: string): string {
+/** Strip simple markdown wrappers like ** **, __ __, ` `, and heading prefix */
+function normalizeLine(line: string): string {
   let s = String(line ?? "").trim();
 
-  // strip surrounding markdown emphasis/backticks
+  // remove leading markdown heading symbols
+  s = s.replace(/^#{1,6}\s*/, "").trim();
+
+  // strip emphasis/backticks around the whole line
   s = s.replace(/^(\*\*|__|`)+/, "").replace(/(\*\*|__|`)+$/, "").trim();
 
-  // remove trailing punctuation commonly added
+  // remove trailing punctuation
   s = s.replace(/[.!]+$/, "").trim();
 
   return s;
 }
 
 /**
- * Drift detector:
- * - header must contain correct instrument line (tolerant)
- * - keyword checks prevent mixed-instrument generic plans
+ * Tolerant header check:
+ * Accepts:
+ * - "Instrument: Guitar"
+ * - "Instrument: Guitar 🎸"
+ * - "Instrument: Guitar (Beginner)"
+ * - "Instrument: Guitar - Rock"
+ * Also accepts different casing.
  */
-function looksWrongInstrument(output: string, instrument: string): boolean {
-  const out = String(output ?? "").trim();
-  const outLower = toLower(out);
-
+function headerMatches(output: string, instrument: string) {
   const inst = String(instrument ?? "").trim();
   const instLower = toLower(inst);
 
-  // ✅ Header check (tolerant)
-  const header = normalizeHeaderLine(firstMeaningfulLine(out));
-  const required = `Instrument: ${inst}`;
-  if (header !== required) return true;
+  const first = normalizeLine(firstMeaningfulLine(output));
+  const firstLower = toLower(first);
 
-  // ✅ Keyword drift checks
-  const hasAny = (words: string[]) => words.some((w) => outLower.includes(w));
+  // Must start with "instrument:"
+  if (!firstLower.startsWith("instrument:")) return { ok: false, firstLine: first };
+
+  // Everything after "instrument:" should start with the instrument (case-insensitive)
+  const after = firstLower.replace(/^instrument:\s*/, "");
+  const ok = after.startsWith(instLower);
+
+  return { ok, firstLine: first };
+}
+
+function containsAny(outLower: string, words: string[]) {
+  return words.some((w) => outLower.includes(w));
+}
+
+/**
+ * Drift detector:
+ * - header must match (tolerant)
+ * - instrument-specific “wrong content” checks (less aggressive for guitar)
+ */
+function looksWrongInstrument(output: string, instrument: string) {
+  const out = String(output ?? "").trim();
+  const outLower = toLower(out);
+  const instLower = toLower(String(instrument ?? "").trim());
+
+  const header = headerMatches(out, instrument);
+  if (!header.ok) {
+    return { wrong: true, reason: "header_mismatch", headerLine: header.firstLine };
+  }
+
+  // Strong “not this instrument” indicators
+  const vocalWords = ["vocal", "sing", "singer", "breath support", "diaphragm", "pitch", "resonance"];
+  const genericMixedWords = ["hanon", "string instrument", "string instruments"];
 
   if (instLower.includes("drum")) {
-    // For drums, block mixed-instrument generic plans
-    return hasAny([
-      "vocal",
-      "sing",
-      "breath",
-      "breathing",
-      "pitch",
+    const forbidden = [
+      ...vocalWords,
+      ...genericMixedWords,
       "chord",
       "chords",
       "scale",
       "scales",
-      "hanon",
-      "string instrument",
-      "string instruments",
-      "piano",
-      "keyboard",
-      "guitar",
-      "bass",
       "strum",
       "fretting",
       "fret",
-    ]);
+      "guitar",
+      "bass",
+      "piano",
+      "keyboard",
+    ];
+    if (containsAny(outLower, forbidden)) {
+      return { wrong: true, reason: "drums_forbidden_keywords", headerLine: header.firstLine };
+    }
+    return { wrong: false, reason: "ok", headerLine: header.firstLine };
   }
 
   if (instLower.includes("guitar")) {
-    return hasAny([
-      "vocal",
-      "sing",
-      "breath",
-      "breathing",
+    // ✅ For guitar, only forbid vocals + very specific drum-rudiment language (NOT the word “drums”)
+    const forbidden = [
+      ...vocalWords,
+      ...genericMixedWords,
       "rudiment",
       "paradiddle",
       "single stroke",
       "double stroke",
       "hi-hat",
-      "snare",
-      "kick",
-      "drum",
-      "drumming",
       "stickings",
-      "hanon",
-    ]);
+    ];
+    if (containsAny(outLower, forbidden)) {
+      return { wrong: true, reason: "guitar_forbidden_keywords", headerLine: header.firstLine };
+    }
+    return { wrong: false, reason: "ok", headerLine: header.firstLine };
   }
 
   if (instLower.includes("bass")) {
-    return hasAny([
-      "vocal",
-      "sing",
-      "breath",
-      "breathing",
+    const forbidden = [
+      ...vocalWords,
+      ...genericMixedWords,
       "rudiment",
       "paradiddle",
       "hi-hat",
-      "snare",
-      "kick",
-      "drum",
-      "drumming",
-      "hanon",
-    ]);
+      "stickings",
+    ];
+    if (containsAny(outLower, forbidden)) {
+      return { wrong: true, reason: "bass_forbidden_keywords", headerLine: header.firstLine };
+    }
+    return { wrong: false, reason: "ok", headerLine: header.firstLine };
   }
 
-  // Keyboards/Vocals: header lock is enough for now
-  return false;
+  // Keyboards/vocals: header lock only (for now)
+  return { wrong: false, reason: "ok", headerLine: header.firstLine };
 }
 
 function buildPrompt(params: {
@@ -217,16 +228,15 @@ You are Tonehouse AI Coach.
 
 STRICT INSTRUMENT LOCK:
 - The ONLY instrument for this plan is: "${instrument}".
-- You MUST write the plan ONLY for "${instrument}".
-- DO NOT mention exercises or techniques for any other instrument.
-- Output MUST start immediately with the exact line: Instrument: ${instrument}
+- Write the plan ONLY for "${instrument}".
+- START IMMEDIATELY with: Instrument: ${instrument}
 - No intro text. No "Sure". No preamble.
 
 ${retry ? `RETRY MODE:
-- Your previous output drifted or used a generic mixed-instrument plan.
+- Your previous output failed the instrument lock.
 - Start immediately with: Instrument: ${instrument}
-- Do not mention ANY other instruments.
-- Every bullet must be explicitly playable on "${instrument}".` : ""}
+- Do not mention any other instruments or instrument-specific exercises.
+` : ""}
 
 USER CONTEXT:
 Instrument: ${instrument}
@@ -239,16 +249,17 @@ Days per week: ${daysPerWeek}
 Last session notes: ${lastSessionNotes}
 
 OUTPUT REQUIREMENTS:
-- Output in Markdown
-- Use headings + bullet points
-- Be practical and specific
-- Include a day-by-day template (Day 1..Day ${daysPerWeek})
+- Markdown
+- Headings + bullet points
+- Day-by-day template (Day 1..Day ${daysPerWeek})
 - Include a "Focus Metric"
 
-DRUMS (if instrument is Drums):
-- You MUST include: rudiments, stickings, subdivisions, coordination/independence, and metronome tempos.
-- Every exercise must reference drums explicitly (snare/kick/hi-hat/toms/ride or practice pad).
-- You MUST NOT include: breathing, singing, scales, chords, Hanon, string instruments, piano, guitar.
+INSTRUMENT GUIDANCE:
+- DRUMS: rudiments, stickings, subdivisions, independence, tempo control, groove, fills (explicitly mention snare/kick/hat or practice pad)
+- GUITAR: chords, fretting/picking, strumming, scales, timing, chord changes
+- BASS: groove, timing, muting, locking with drums, fingerstyle/pick
+- KEYBOARDS: hand independence, voicings, scales/arpeggios, metronome
+- VOCALS: breath support, pitch, resonance, warmups
 
 BEGIN NOW.
 `.trim();
@@ -302,7 +313,7 @@ export async function POST(req: Request) {
           {
             role: "system",
             content:
-              "Follow the selected instrument strictly. No mixed-instrument plans. Start immediately with the exact Instrument line.",
+              "Follow the instrument lock strictly. Start immediately with the Instrument line. No mixed-instrument plans.",
           },
           { role: "user", content: prompt },
         ],
@@ -313,17 +324,23 @@ export async function POST(req: Request) {
 
     let text = await generateOnce(false);
 
-    if (looksWrongInstrument(text, instrument)) {
+    let verdict = looksWrongInstrument(text, instrument);
+    if (verdict.wrong) {
       text = await generateOnce(true);
+      verdict = looksWrongInstrument(text, instrument);
     }
 
-    if (looksWrongInstrument(text, instrument)) {
+    if (verdict.wrong) {
       return NextResponse.json(
         {
           version: COACH_API_VERSION,
           error:
             "AI output drifted to the wrong instrument (even after retry). Please try again.",
           received: { instrument, mode, level, genre },
+          debug: {
+            reason: verdict.reason,
+            firstMeaningfulLine: verdict.headerLine,
+          },
           videos,
         },
         { status: 500 }
