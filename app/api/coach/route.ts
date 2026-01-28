@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const COACH_API_VERSION = "coach-v9-relaxed-guitar-check-2026-01-28";
+const COACH_API_VERSION = "coach-v10-fix-string-instruments-2026-01-28";
 
 type VideoRec = { title: string; url: string };
 
@@ -79,16 +79,9 @@ function firstMeaningfulLine(text: string): string {
 /** Strip simple markdown wrappers like ** **, __ __, ` `, and heading prefix */
 function normalizeLine(line: string): string {
   let s = String(line ?? "").trim();
-
-  // remove leading markdown heading symbols
   s = s.replace(/^#{1,6}\s*/, "").trim();
-
-  // strip emphasis/backticks around the whole line
   s = s.replace(/^(\*\*|__|`)+/, "").replace(/(\*\*|__|`)+$/, "").trim();
-
-  // remove trailing punctuation
   s = s.replace(/[.!]+$/, "").trim();
-
   return s;
 }
 
@@ -99,7 +92,6 @@ function normalizeLine(line: string): string {
  * - "Instrument: Guitar 🎸"
  * - "Instrument: Guitar (Beginner)"
  * - "Instrument: Guitar - Rock"
- * Also accepts different casing.
  */
 function headerMatches(output: string, instrument: string) {
   const inst = String(instrument ?? "").trim();
@@ -108,10 +100,8 @@ function headerMatches(output: string, instrument: string) {
   const first = normalizeLine(firstMeaningfulLine(output));
   const firstLower = toLower(first);
 
-  // Must start with "instrument:"
   if (!firstLower.startsWith("instrument:")) return { ok: false, firstLine: first };
 
-  // Everything after "instrument:" should start with the instrument (case-insensitive)
   const after = firstLower.replace(/^instrument:\s*/, "");
   const ok = after.startsWith(instLower);
 
@@ -122,11 +112,6 @@ function containsAny(outLower: string, words: string[]) {
   return words.some((w) => outLower.includes(w));
 }
 
-/**
- * Drift detector:
- * - header must match (tolerant)
- * - instrument-specific “wrong content” checks (less aggressive for guitar)
- */
 function looksWrongInstrument(output: string, instrument: string) {
   const out = String(output ?? "").trim();
   const outLower = toLower(out);
@@ -138,13 +123,23 @@ function looksWrongInstrument(output: string, instrument: string) {
   }
 
   // Strong “not this instrument” indicators
-  const vocalWords = ["vocal", "sing", "singer", "breath support", "diaphragm", "pitch", "resonance"];
-  const genericMixedWords = ["hanon", "string instrument", "string instruments"];
+  const vocalWords = ["vocal", "sing", "singer", "breath support", "diaphragm", "resonance", "vibrato"];
+
+  // IMPORTANT:
+  // We do NOT forbid "string instruments" for Guitar/Bass anymore,
+  // because guitar IS a string instrument and it was causing false rejects.
 
   if (instLower.includes("drum")) {
     const forbidden = [
       ...vocalWords,
-      ...genericMixedWords,
+      // Generic drifting language that is NOT drums:
+      "string instrument",
+      "string instruments",
+      "hanon",
+      "piano",
+      "keyboard",
+      "guitar",
+      "bass",
       "chord",
       "chords",
       "scale",
@@ -152,10 +147,8 @@ function looksWrongInstrument(output: string, instrument: string) {
       "strum",
       "fretting",
       "fret",
-      "guitar",
-      "bass",
-      "piano",
-      "keyboard",
+      "arpeggio",
+      "arpeggios",
     ];
     if (containsAny(outLower, forbidden)) {
       return { wrong: true, reason: "drums_forbidden_keywords", headerLine: header.firstLine };
@@ -164,16 +157,17 @@ function looksWrongInstrument(output: string, instrument: string) {
   }
 
   if (instLower.includes("guitar")) {
-    // ✅ For guitar, only forbid vocals + very specific drum-rudiment language (NOT the word “drums”)
+    // ✅ For guitar: only block vocals + very specific drum-rudiment language + piano hanon
+    // (Allow references like "play with a drum loop" etc.)
     const forbidden = [
       ...vocalWords,
-      ...genericMixedWords,
+      "hanon",
       "rudiment",
       "paradiddle",
       "single stroke",
       "double stroke",
-      "hi-hat",
       "stickings",
+      "hi-hat", // optional; keep if you really want
     ];
     if (containsAny(outLower, forbidden)) {
       return { wrong: true, reason: "guitar_forbidden_keywords", headerLine: header.firstLine };
@@ -184,11 +178,13 @@ function looksWrongInstrument(output: string, instrument: string) {
   if (instLower.includes("bass")) {
     const forbidden = [
       ...vocalWords,
-      ...genericMixedWords,
+      "hanon",
       "rudiment",
       "paradiddle",
-      "hi-hat",
+      "single stroke",
+      "double stroke",
       "stickings",
+      "hi-hat",
     ];
     if (containsAny(outLower, forbidden)) {
       return { wrong: true, reason: "bass_forbidden_keywords", headerLine: header.firstLine };
@@ -196,7 +192,7 @@ function looksWrongInstrument(output: string, instrument: string) {
     return { wrong: false, reason: "ok", headerLine: header.firstLine };
   }
 
-  // Keyboards/vocals: header lock only (for now)
+  // Keyboards/Vocals: header lock only (for now)
   return { wrong: false, reason: "ok", headerLine: header.firstLine };
 }
 
@@ -230,12 +226,12 @@ STRICT INSTRUMENT LOCK:
 - The ONLY instrument for this plan is: "${instrument}".
 - Write the plan ONLY for "${instrument}".
 - START IMMEDIATELY with: Instrument: ${instrument}
-- No intro text. No "Sure". No preamble.
+- No intro text. No preamble.
 
 ${retry ? `RETRY MODE:
-- Your previous output failed the instrument lock.
+- Your previous output failed the instrument lock checks.
 - Start immediately with: Instrument: ${instrument}
-- Do not mention any other instruments or instrument-specific exercises.
+- Do not mention other instruments or instrument-specific techniques for other instruments.
 ` : ""}
 
 USER CONTEXT:
@@ -255,7 +251,7 @@ OUTPUT REQUIREMENTS:
 - Include a "Focus Metric"
 
 INSTRUMENT GUIDANCE:
-- DRUMS: rudiments, stickings, subdivisions, independence, tempo control, groove, fills (explicitly mention snare/kick/hat or practice pad)
+- DRUMS: rudiments, stickings, subdivisions, independence, tempo control, groove, fills (snare/kick/hat or practice pad)
 - GUITAR: chords, fretting/picking, strumming, scales, timing, chord changes
 - BASS: groove, timing, muting, locking with drums, fingerstyle/pick
 - KEYBOARDS: hand independence, voicings, scales/arpeggios, metronome
@@ -313,7 +309,7 @@ export async function POST(req: Request) {
           {
             role: "system",
             content:
-              "Follow the instrument lock strictly. Start immediately with the Instrument line. No mixed-instrument plans.",
+              "Follow the selected instrument strictly. Start immediately with the Instrument line. No mixed-instrument generic plans.",
           },
           { role: "user", content: prompt },
         ],
@@ -334,8 +330,7 @@ export async function POST(req: Request) {
       return NextResponse.json(
         {
           version: COACH_API_VERSION,
-          error:
-            "AI output drifted to the wrong instrument (even after retry). Please try again.",
+          error: "AI output drifted to the wrong instrument (even after retry). Please try again.",
           received: { instrument, mode, level, genre },
           debug: {
             reason: verdict.reason,
