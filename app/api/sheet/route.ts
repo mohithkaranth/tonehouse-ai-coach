@@ -1,6 +1,7 @@
-import OpenAI from "openai";
+import { NextResponse } from "next/server";
 
-const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 type VideoRec = { title: string; url: string };
 
@@ -140,6 +141,26 @@ Requirements:
 - If drums and user likes odd time signatures, include an odd-time mini-block
 `;
 
+    // Always return videos even if OpenAI key is missing
+    const videos = pickVideos({ instrument, mode, goals, genre, level });
+
+    const apiKey = process.env.OPENAI_API_KEY;
+
+    // If no key, don't crash build or runtime: return videos + helpful error
+    if (!apiKey) {
+      return NextResponse.json(
+        {
+          text: "OPENAI_API_KEY is not set. Add it in Vercel → Project → Settings → Environment Variables, then redeploy.",
+          videos,
+        },
+        { status: 200 }
+      );
+    }
+
+    // Lazy import so Vercel build doesn't execute OpenAI init
+    const OpenAI = (await import("openai")).default;
+    const client = new OpenAI({ apiKey });
+
     const completion = await client.chat.completions.create({
       model: "gpt-4.1-mini",
       temperature: 0.7,
@@ -154,13 +175,12 @@ Requirements:
       ],
     });
 
-    const text = completion.choices[0]?.message?.content?.trim() ?? "No response.";
-    const videos = pickVideos({ instrument, mode, goals, genre, level });
+    const text =
+      completion.choices[0]?.message?.content?.trim() ?? "No response.";
 
-    // Always return videos
-    return Response.json({ text, videos });
+    return NextResponse.json({ text, videos });
   } catch (err: any) {
-    return Response.json(
+    return NextResponse.json(
       { error: err?.message ?? "Unknown error" },
       { status: 500 }
     );
