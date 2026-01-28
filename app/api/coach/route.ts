@@ -1,11 +1,10 @@
-// app/api/coach/route.ts
 import { NextResponse } from "next/server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-// ✅ Version stamp so you can prove which API code is running on Vercel
-const COACH_API_VERSION = "coach-v7-instrument-lock-2026-01-28";
+// Version stamp so you can confirm what’s deployed
+const COACH_API_VERSION = "coach-v8-header-tolerant-2026-01-28";
 
 type VideoRec = { title: string; url: string };
 
@@ -18,72 +17,41 @@ function includesAny(text: string, keywords: string[]) {
   return keywords.some((k) => t.includes(k));
 }
 
-// Simple, stable video suggestions
 function pickVideos(params: { instrument: string }): VideoRec[] {
   const inst = toLower(params.instrument);
 
   if (inst.includes("drum")) {
     return [
-      {
-        title: "Single Stroke Roll – Rudiment Lesson",
-        url: "https://www.youtube.com/watch?v=KjpGoOq-0gc",
-      },
-      {
-        title: "Practice Pad Warmup – Hands & Timing",
-        url: "https://www.youtube.com/watch?v=nxM7i_GPars",
-      },
+      { title: "Single Stroke Roll – Rudiment Lesson", url: "https://www.youtube.com/watch?v=KjpGoOq-0gc" },
+      { title: "Practice Pad Warmup – Hands & Timing", url: "https://www.youtube.com/watch?v=nxM7i_GPars" },
     ];
   }
 
   if (inst.includes("guitar")) {
     return [
-      {
-        title: "One Minute Changes – Faster Chord Switching",
-        url: "https://www.youtube.com/watch?v=Ck73R_GjowE",
-      },
-      {
-        title: "Strumming & Rhythm Control",
-        url: "https://www.youtube.com/watch?v=9iVDuMN1BJA",
-      },
+      { title: "One Minute Changes – Faster Chord Switching", url: "https://www.youtube.com/watch?v=Ck73R_GjowE" },
+      { title: "Strumming & Rhythm Control", url: "https://www.youtube.com/watch?v=9iVDuMN1BJA" },
     ];
   }
 
   if (inst.includes("bass")) {
     return [
-      {
-        title: "Beginning The Major Scale (Bass Lesson)",
-        url: "https://www.youtube.com/watch?v=2bvgAbWRdIA",
-      },
-      {
-        title: "How To Practice Scales Like A Pro (Bass)",
-        url: "https://www.youtube.com/watch?v=J7NxTxpklHY",
-      },
+      { title: "Beginning The Major Scale (Bass Lesson)", url: "https://www.youtube.com/watch?v=2bvgAbWRdIA" },
+      { title: "How To Practice Scales Like A Pro (Bass)", url: "https://www.youtube.com/watch?v=J7NxTxpklHY" },
     ];
   }
 
   if (inst.includes("keyboard") || inst.includes("keys") || inst.includes("piano")) {
     return [
-      {
-        title: "Beginner Piano Practice Routine (Search)",
-        url: "https://www.youtube.com/results?search_query=beginner+piano+practice+routine",
-      },
-      {
-        title: "Piano Hand Independence Beginner (Search)",
-        url: "https://www.youtube.com/results?search_query=piano+hand+independence+beginner",
-      },
+      { title: "Beginner Piano Practice Routine (Search)", url: "https://www.youtube.com/results?search_query=beginner+piano+practice+routine" },
+      { title: "Piano Hand Independence Beginner (Search)", url: "https://www.youtube.com/results?search_query=piano+hand+independence+beginner" },
     ];
   }
 
   if (inst.includes("vocal") || inst.includes("sing")) {
     return [
-      {
-        title: "Vocal Warmups for Beginners (Search)",
-        url: "https://www.youtube.com/results?search_query=vocal+warmups+for+beginners",
-      },
-      {
-        title: "Breath Support Basics for Singing (Search)",
-        url: "https://www.youtube.com/results?search_query=breath+support+basics+singing",
-      },
+      { title: "Vocal Warmups for Beginners (Search)", url: "https://www.youtube.com/results?search_query=vocal+warmups+for+beginners" },
+      { title: "Breath Support Basics for Singing (Search)", url: "https://www.youtube.com/results?search_query=breath+support+basics+singing" },
     ];
   }
 
@@ -91,9 +59,54 @@ function pickVideos(params: { instrument: string }): VideoRec[] {
 }
 
 /**
- * Strong drift detector:
- * 1) Enforce exact first line: "Instrument: <instrument>"
- * 2) Obvious wrong-instrument keyword checks
+ * Extract the first meaningful line (ignores empty lines and common preambles)
+ */
+function firstMeaningfulLine(text: string): string {
+  const lines = String(text ?? "").split(/\r?\n/).map((l) => l.trim());
+
+  for (const l of lines) {
+    if (!l) continue;
+
+    // Ignore typical LLM preamble lines
+    const lower = l.toLowerCase();
+    if (
+      lower === "sure!" ||
+      lower === "sure." ||
+      lower.startsWith("sure,") ||
+      lower.startsWith("of course") ||
+      lower.startsWith("here’s") ||
+      lower.startsWith("here is") ||
+      lower.startsWith("here's")
+    ) {
+      continue;
+    }
+
+    return l;
+  }
+
+  return "";
+}
+
+/**
+ * Normalize a line so we accept markdown variants like:
+ * "**Instrument: Drums**" or "`Instrument: Drums`"
+ */
+function normalizeHeaderLine(line: string): string {
+  let s = String(line ?? "").trim();
+
+  // strip surrounding markdown emphasis/backticks
+  s = s.replace(/^(\*\*|__|`)+/, "").replace(/(\*\*|__|`)+$/, "").trim();
+
+  // remove trailing punctuation commonly added
+  s = s.replace(/[.!]+$/, "").trim();
+
+  return s;
+}
+
+/**
+ * Drift detector:
+ * - header must contain correct instrument line (tolerant)
+ * - keyword checks prevent mixed-instrument generic plans
  */
 function looksWrongInstrument(output: string, instrument: string): boolean {
   const out = String(output ?? "").trim();
@@ -102,22 +115,22 @@ function looksWrongInstrument(output: string, instrument: string): boolean {
   const inst = String(instrument ?? "").trim();
   const instLower = toLower(inst);
 
-  // ✅ Hard requirement: exact first line
-  const firstLine = out.split(/\r?\n/)[0]?.trim() ?? "";
+  // ✅ Header check (tolerant)
+  const header = normalizeHeaderLine(firstMeaningfulLine(out));
   const required = `Instrument: ${inst}`;
-  if (firstLine !== required) return true;
+  if (header !== required) return true;
 
+  // ✅ Keyword drift checks
   const hasAny = (words: string[]) => words.some((w) => outLower.includes(w));
 
   if (instLower.includes("drum")) {
+    // For drums, block mixed-instrument generic plans
     return hasAny([
-      // vocals / general music
       "vocal",
       "sing",
       "breath",
       "breathing",
       "pitch",
-      // guitar/piano theory words that show generic plans
       "chord",
       "chords",
       "scale",
@@ -141,7 +154,6 @@ function looksWrongInstrument(output: string, instrument: string): boolean {
       "sing",
       "breath",
       "breathing",
-      // drum terms
       "rudiment",
       "paradiddle",
       "single stroke",
@@ -152,7 +164,6 @@ function looksWrongInstrument(output: string, instrument: string): boolean {
       "drum",
       "drumming",
       "stickings",
-      // piano
       "hanon",
     ]);
   }
@@ -163,7 +174,6 @@ function looksWrongInstrument(output: string, instrument: string): boolean {
       "sing",
       "breath",
       "breathing",
-      // drum terms
       "rudiment",
       "paradiddle",
       "hi-hat",
@@ -171,12 +181,11 @@ function looksWrongInstrument(output: string, instrument: string): boolean {
       "kick",
       "drum",
       "drumming",
-      // piano
       "hanon",
     ]);
   }
 
-  // For keyboards/vocals, first-line lock is enough for now
+  // Keyboards/Vocals: header lock is enough for now
   return false;
 }
 
@@ -210,13 +219,14 @@ STRICT INSTRUMENT LOCK:
 - The ONLY instrument for this plan is: "${instrument}".
 - You MUST write the plan ONLY for "${instrument}".
 - DO NOT mention exercises or techniques for any other instrument.
-- First line of your output MUST be exactly: Instrument: ${instrument}
-- If you drift, STOP and rewrite.
+- Output MUST start immediately with the exact line: Instrument: ${instrument}
+- No intro text. No "Sure". No preamble.
 
 ${retry ? `RETRY MODE:
-- Your previous output drifted to the wrong instrument.
+- Your previous output drifted or used a generic mixed-instrument plan.
+- Start immediately with: Instrument: ${instrument}
 - Do not mention ANY other instruments.
-- Make every bullet explicitly playable on "${instrument}".` : ""}
+- Every bullet must be explicitly playable on "${instrument}".` : ""}
 
 USER CONTEXT:
 Instrument: ${instrument}
@@ -233,17 +243,12 @@ OUTPUT REQUIREMENTS:
 - Use headings + bullet points
 - Be practical and specific
 - Include a day-by-day template (Day 1..Day ${daysPerWeek})
-- Include a "Focus Metric" (what to measure)
+- Include a "Focus Metric"
 
-INSTRUMENT GUIDANCE:
-- DRUMS:
-  - You MUST include: rudiments, stickings, subdivisions, coordination/independence, and metronome tempos.
-  - Every exercise must reference drums explicitly (snare/kick/hi-hat/toms/ride or practice pad).
-  - You MUST NOT include: breathing, singing, scales, chords, Hanon, string instruments, piano, guitar.
-- GUITAR: chords, fretting hand, picking hand, rhythm/strumming, scales, timing. No singing/breathing/drum rudiments.
-- BASS: groove, timing, muting, fingerstyle/pick, locking with drums. No singing/breathing/drum rudiments.
-- KEYBOARDS: hand independence, chord voicings, scales/arpeggios, metronome work.
-- VOCALS: breath support, pitch control, resonance, warmups.
+DRUMS (if instrument is Drums):
+- You MUST include: rudiments, stickings, subdivisions, coordination/independence, and metronome tempos.
+- Every exercise must reference drums explicitly (snare/kick/hi-hat/toms/ride or practice pad).
+- You MUST NOT include: breathing, singing, scales, chords, Hanon, string instruments, piano, guitar.
 
 BEGIN NOW.
 `.trim();
@@ -254,10 +259,7 @@ export async function POST(req: Request) {
 
   if (!apiKey) {
     return NextResponse.json(
-      {
-        version: COACH_API_VERSION,
-        error: "Missing OPENAI_API_KEY (set it in Vercel Environment Variables).",
-      },
+      { version: COACH_API_VERSION, error: "Missing OPENAI_API_KEY." },
       { status: 500 }
     );
   }
@@ -269,10 +271,7 @@ export async function POST(req: Request) {
     const body = await req.json();
 
     const mode = String(body.mode ?? "practice_plan");
-
-    // ✅ Normalize instrument to avoid trailing space / casing weirdness
     const instrument = String(body.instrument ?? "Guitar").trim();
-
     const level = String(body.level ?? "Beginner");
     const goals = String(body.goals ?? "Improve timing and technique");
     const genre = String(body.genre ?? "Rock");
@@ -303,7 +302,7 @@ export async function POST(req: Request) {
           {
             role: "system",
             content:
-              "You are Tonehouse AI Coach. Never switch instruments. First line must match exactly. No generic mixed-instrument plans.",
+              "Follow the selected instrument strictly. No mixed-instrument plans. Start immediately with the exact Instrument line.",
           },
           { role: "user", content: prompt },
         ],
@@ -312,15 +311,12 @@ export async function POST(req: Request) {
       return completion.choices[0]?.message?.content?.trim() ?? "No response.";
     }
 
-    // Try #1
     let text = await generateOnce(false);
 
-    // Validate + retry once if drift
     if (looksWrongInstrument(text, instrument)) {
       text = await generateOnce(true);
     }
 
-    // Hard fail if still wrong (prevents wrong content from showing)
     if (looksWrongInstrument(text, instrument)) {
       return NextResponse.json(
         {
@@ -342,10 +338,7 @@ export async function POST(req: Request) {
     });
   } catch (err: any) {
     return NextResponse.json(
-      {
-        version: COACH_API_VERSION,
-        error: err?.message ?? "Unknown error",
-      },
+      { version: COACH_API_VERSION, error: err?.message ?? "Unknown error" },
       { status: 500 }
     );
   }
