@@ -116,48 +116,29 @@ function clientFallbackVideos(params: {
   }
 
   // KEYS/PIANO/KEYBOARD/SYNTH (fallback: search links)
-  if (
-    x.includes("piano") ||
-    x.includes("keyboard") ||
-    x.includes("keys") ||
-    x.includes("synth")
-  ) {
+  if (x.includes("keyboard") || x.includes("keys") || x.includes("piano") || x.includes("synth")) {
     return [
       {
-        title: "Beginner Piano Scales Practice (Search)",
-        url: "https://www.youtube.com/results?search_query=beginner+piano+scales+practice",
+        title: "Beginner Piano Practice Routine (Search)",
+        url: "https://www.youtube.com/results?search_query=beginner+piano+practice+routine",
       },
       {
-        title: "Piano Hand Independence (Search)",
+        title: "Piano Hand Independence Beginner (Search)",
         url: "https://www.youtube.com/results?search_query=piano+hand+independence+beginner",
       },
     ];
   }
 
-  // ORGAN (fallback: search links)
-  if (x.includes("organ")) {
+  // VOCALS (fallback: search links)
+  if (x.includes("vocal") || x.includes("sing")) {
     return [
       {
-        title: "Hammond Organ Drawbars Basics (Search)",
-        url: "https://www.youtube.com/results?search_query=hammond+organ+drawbars+basics",
+        title: "Vocal Warmups for Beginners (Search)",
+        url: "https://www.youtube.com/results?search_query=vocal+warmups+for+beginners",
       },
       {
-        title: "Organ Left Hand Bass Right Hand Chords (Search)",
-        url: "https://www.youtube.com/results?search_query=organ+left+hand+bass+right+hand+chords",
-      },
-    ];
-  }
-
-  // VIOLIN (fallback: search links)
-  if (x.includes("violin")) {
-    return [
-      {
-        title: "Violin Bowing Technique Beginner (Search)",
-        url: "https://www.youtube.com/results?search_query=violin+bowing+technique+beginner",
-      },
-      {
-        title: "Violin Intonation Beginner (Search)",
-        url: "https://www.youtube.com/results?search_query=violin+intonation+beginner",
+        title: "Breath Support Basics for Singing (Search)",
+        url: "https://www.youtube.com/results?search_query=breath+support+basics+singing",
       },
     ];
   }
@@ -165,8 +146,8 @@ function clientFallbackVideos(params: {
   // DEFAULT
   return [
     {
-      title: "How To Practice (and USE) Scales Like A Pro (Bass, but general)",
-      url: "https://www.youtube.com/watch?v=J7NxTxpklHY",
+      title: "How To Practice (General) (Search)",
+      url: "https://www.youtube.com/results?search_query=how+to+practice+music+effectively",
     },
   ];
 }
@@ -189,14 +170,18 @@ export default function CoachForm({
   const [result, setResult] = useState<string>("");
   const [loading, setLoading] = useState(false);
 
-  // Videos returned by /api/coach
   const [videos, setVideos] = useState<VideoRec[]>([]);
 
-  // Sheet music / tabs UI
+  const [serverReceived, setServerReceived] = useState<{
+    instrument?: string;
+    mode?: string;
+    level?: string;
+    genre?: string;
+  } | null>(null);
+
   const [includeSheetMusic, setIncludeSheetMusic] = useState(false);
   const [songName, setSongName] = useState("");
 
-  // External links for song
   const ugUrl = songName.trim()
     ? `https://www.ultimate-guitar.com/search.php?search_type=title&value=${encodeURIComponent(
         songName.trim()
@@ -216,6 +201,9 @@ export default function CoachForm({
     setLoading(true);
     setResult("");
     setVideos([]);
+    setServerReceived(null);
+
+    const instrumentTrim = (instrument || "").trim();
 
     try {
       const res = await fetch("/api/coach", {
@@ -223,7 +211,7 @@ export default function CoachForm({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           mode,
-          instrument,
+          instrument: instrumentTrim,
           level,
           goals,
           genre,
@@ -234,6 +222,8 @@ export default function CoachForm({
       });
 
       const data = await res.json();
+
+      if (data?.received) setServerReceived(data.received);
 
       setResult(data.text ?? data.error ?? "No response.");
       setVideos(Array.isArray(data.videos) ? data.videos : []);
@@ -249,13 +239,11 @@ export default function CoachForm({
     return `https://www.youtube.com/results?search_query=${encodeURIComponent(q)}`;
   }, [instrument, level, genre, mode, goals]);
 
-  // If API returns none, fallback (goal-aware)
   const effectiveVideos = useMemo(() => {
     if (videos && videos.length > 0) return videos;
     return clientFallbackVideos({ instrument, goals });
   }, [videos, instrument, goals]);
 
-  // Only watch/shorts links embed. Search links will show as links only.
   const embedded = useMemo(() => {
     const items: { id: string; title: string; url: string }[] = [];
     for (const v of effectiveVideos) {
@@ -267,8 +255,6 @@ export default function CoachForm({
 
   return (
     <div className="grid gap-10">
-      {/* ===== FORM ===== */}
-
       <div className="grid gap-6 md:grid-cols-3">
         <label className="grid gap-1 text-sm">
           <span className="text-zinc-400">Mode</span>
@@ -284,13 +270,20 @@ export default function CoachForm({
           </select>
         </label>
 
+        {/* ✅ Instrument dropdown */}
         <label className="grid gap-1 text-sm">
           <span className="text-zinc-400">Instrument</span>
-          <input
+          <select
             value={instrument}
             onChange={(e) => onInstrumentChange(e.target.value)}
             className={field}
-          />
+          >
+            <option value="Guitar">Guitar</option>
+            <option value="Drums">Drums</option>
+            <option value="Bass">Bass</option>
+            <option value="Keyboards">Keyboards</option>
+            <option value="Vocals">Vocals</option>
+          </select>
         </label>
 
         <label className="grid gap-1 text-sm">
@@ -339,7 +332,6 @@ export default function CoachForm({
         />
       </label>
 
-      {/* ===== SHEET MUSIC UI (links) ===== */}
       <div className="rounded-3xl border border-white/18 ring-1 ring-white/10 bg-zinc-950/55 p-5 shadow-sm">
         <div className="flex items-center gap-3 mb-3">
           <input
@@ -387,7 +379,6 @@ export default function CoachForm({
         )}
       </div>
 
-      {/* ===== BUTTON ===== */}
       <button
         onClick={runCoach}
         disabled={loading}
@@ -396,11 +387,19 @@ export default function CoachForm({
         {loading ? "Generating practice plan…" : "Generate Practice Plan"}
       </button>
 
-      {/* ===== OUTPUT ===== */}
       <div className="rounded-3xl border border-white/25 ring-1 ring-white/15 bg-zinc-950/55 p-6 shadow-inner">
         <div className="mb-3 text-xs uppercase tracking-widest text-zinc-500">
           Lesson Output
         </div>
+
+        {serverReceived?.instrument ? (
+          <div className="mb-4 text-xs text-zinc-500">
+            Server received:{" "}
+            <span className="text-zinc-300">
+              {serverReceived.instrument} / {serverReceived.mode} / {serverReceived.level} / {serverReceived.genre}
+            </span>
+          </div>
+        ) : null}
 
         <div className="prose prose-invert max-w-none prose-p:my-2 prose-ul:my-2 prose-li:my-1 prose-h2:mt-4 prose-h2:mb-2 prose-h3:mt-3 prose-h3:mb-1">
           {result ? (
@@ -410,7 +409,6 @@ export default function CoachForm({
           )}
         </div>
 
-        {/* ===== VIDEOS: EMBEDS + LINKS ===== */}
         {result ? (
           <div className="mt-8 border-t border-white/10 pt-6">
             <div className="mb-3 text-xs uppercase tracking-widest text-zinc-500">
@@ -456,7 +454,6 @@ export default function CoachForm({
               </p>
             )}
 
-            {/* Link row: always show both */}
             <div className="mt-4 flex flex-wrap gap-3">
               <a
                 href={smartYouTubeSearchUrl}
