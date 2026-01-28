@@ -1,11 +1,15 @@
+"use client";
+
 import Link from "next/link";
+import { useState } from "react";
 import CoachForm from "../components/CoachForm";
 
 export default function CoachPage() {
+  const [instrument, setInstrument] = useState("Guitar");
+
   return (
     <main className="min-h-screen bg-zinc-950 text-zinc-50">
       <div className="mx-auto max-w-4xl px-6 py-16">
-
         {/* Back */}
         <Link
           href="/"
@@ -23,7 +27,10 @@ export default function CoachPage() {
         </p>
 
         <div className="mt-10">
-          <CoachForm />
+          <CoachForm
+            instrument={instrument}
+            onInstrumentChange={(value) => setInstrument(value)}
+          />
         </div>
       </div>
     </main>
