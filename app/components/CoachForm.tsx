@@ -1,4 +1,3 @@
-// app/components/CoachForm.tsx
 "use client";
 
 import { useMemo, useState } from "react";
@@ -10,6 +9,11 @@ type Mode = "practice_plan" | "warmups" | "chords" | "next_session";
 type VideoRec = {
   title: string;
   url: string;
+};
+
+type DebugInfo = {
+  reason?: string;
+  firstMeaningfulLine?: string;
 };
 
 function extractYouTubeId(url: string): string | null {
@@ -43,10 +47,7 @@ function includesAny(text: string, keywords: string[]) {
   return keywords.some((k) => t.includes(k));
 }
 
-function clientFallbackVideos(params: {
-  instrument: string;
-  goals: string;
-}): VideoRec[] {
+function clientFallbackVideos(params: { instrument: string; goals: string }): VideoRec[] {
   const x = params.instrument.toLowerCase();
   const goals = (params.goals || "").toLowerCase();
 
@@ -62,7 +63,6 @@ function clientFallbackVideos(params: {
     "fingerboard",
   ]);
 
-  // DRUMS
   if (x.includes("drum")) {
     return [
       { title: "Single Stroke Roll – Rudiment Lesson", url: "https://www.youtube.com/watch?v=KjpGoOq-0gc" },
@@ -70,7 +70,6 @@ function clientFallbackVideos(params: {
     ];
   }
 
-  // GUITAR
   if (x.includes("guitar")) {
     return [
       { title: "One Minute Changes – Faster Chord Switching", url: "https://www.youtube.com/watch?v=Ck73R_GjowE" },
@@ -78,7 +77,6 @@ function clientFallbackVideos(params: {
     ];
   }
 
-  // BASS
   if (x.includes("bass")) {
     if (wantsScales) {
       return [
@@ -92,7 +90,6 @@ function clientFallbackVideos(params: {
     ];
   }
 
-  // KEYBOARDS
   if (x.includes("keyboard") || x.includes("keys") || x.includes("piano") || x.includes("synth")) {
     return [
       { title: "Beginner Piano Practice Routine (Search)", url: "https://www.youtube.com/results?search_query=beginner+piano+practice+routine" },
@@ -100,7 +97,6 @@ function clientFallbackVideos(params: {
     ];
   }
 
-  // VOCALS
   if (x.includes("vocal") || x.includes("sing")) {
     return [
       { title: "Vocal Warmups for Beginners (Search)", url: "https://www.youtube.com/results?search_query=vocal+warmups+for+beginners" },
@@ -130,10 +126,8 @@ export default function CoachForm({
 
   const [result, setResult] = useState<string>("");
   const [loading, setLoading] = useState(false);
-
   const [videos, setVideos] = useState<VideoRec[]>([]);
 
-  // ✅ Debug: show server received + API version
   const [serverReceived, setServerReceived] = useState<{
     instrument?: string;
     mode?: string;
@@ -142,8 +136,8 @@ export default function CoachForm({
   } | null>(null);
 
   const [apiVersion, setApiVersion] = useState<string>("");
+  const [debugInfo, setDebugInfo] = useState<DebugInfo | null>(null);
 
-  // Sheet music / tabs UI
   const [includeSheetMusic, setIncludeSheetMusic] = useState(false);
   const [songName, setSongName] = useState("");
 
@@ -164,8 +158,7 @@ export default function CoachForm({
     setVideos([]);
     setServerReceived(null);
     setApiVersion("");
-
-    const instrumentTrim = (instrument || "").trim();
+    setDebugInfo(null);
 
     try {
       const res = await fetch("/api/coach", {
@@ -173,7 +166,7 @@ export default function CoachForm({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           mode,
-          instrument: instrumentTrim,
+          instrument: (instrument || "").trim(),
           level,
           goals,
           genre,
@@ -185,9 +178,9 @@ export default function CoachForm({
 
       const data = await res.json();
 
-      // ✅ capture version + received
       setApiVersion(data?.version || "");
       if (data?.received) setServerReceived(data.received);
+      if (data?.debug) setDebugInfo(data.debug);
 
       setResult(data.text ?? data.error ?? "No response.");
       setVideos(Array.isArray(data.videos) ? data.videos : []);
@@ -219,7 +212,6 @@ export default function CoachForm({
 
   return (
     <div className="grid gap-10">
-      {/* ===== FORM ===== */}
       <div className="grid gap-6 md:grid-cols-3">
         <label className="grid gap-1 text-sm">
           <span className="text-zinc-400">Mode</span>
@@ -231,7 +223,6 @@ export default function CoachForm({
           </select>
         </label>
 
-        {/* ✅ Instrument dropdown */}
         <label className="grid gap-1 text-sm">
           <span className="text-zinc-400">Instrument</span>
           <select value={instrument} onChange={(e) => onInstrumentChange(e.target.value)} className={field}>
@@ -280,7 +271,6 @@ export default function CoachForm({
         <textarea rows={3} value={lastSessionNotes} onChange={(e) => setLastSessionNotes(e.target.value)} className={field} />
       </label>
 
-      {/* ===== SHEET MUSIC UI (links) ===== */}
       <div className="rounded-3xl border border-white/18 ring-1 ring-white/10 bg-zinc-950/55 p-5 shadow-sm">
         <div className="flex items-center gap-3 mb-3">
           <input
@@ -326,7 +316,6 @@ export default function CoachForm({
         )}
       </div>
 
-      {/* ===== BUTTON ===== */}
       <button
         onClick={runCoach}
         disabled={loading}
@@ -335,7 +324,6 @@ export default function CoachForm({
         {loading ? "Generating practice plan…" : "Generate Practice Plan"}
       </button>
 
-      {/* ===== OUTPUT ===== */}
       <div className="rounded-3xl border border-white/25 ring-1 ring-white/15 bg-zinc-950/55 p-6 shadow-inner">
         <div className="mb-3 text-xs uppercase tracking-widest text-zinc-500">Lesson Output</div>
 
@@ -346,11 +334,27 @@ export default function CoachForm({
         ) : null}
 
         {serverReceived?.instrument ? (
-          <div className="mb-4 text-xs text-zinc-500">
+          <div className="mb-2 text-xs text-zinc-500">
             Server received:{" "}
             <span className="text-zinc-300">
               {serverReceived.instrument} / {serverReceived.mode} / {serverReceived.level} / {serverReceived.genre}
             </span>
+          </div>
+        ) : null}
+
+        {/* ✅ Show debug when present */}
+        {debugInfo?.reason ? (
+          <div className="mb-4 rounded-2xl border border-white/10 bg-zinc-950/60 p-4 text-xs text-zinc-400">
+            <div className="text-zinc-300 font-medium mb-1">Debug</div>
+            <div>
+              reason: <span className="text-zinc-200">{debugInfo.reason}</span>
+            </div>
+            {debugInfo.firstMeaningfulLine ? (
+              <div className="mt-1">
+                firstMeaningfulLine:{" "}
+                <span className="text-zinc-200">{debugInfo.firstMeaningfulLine}</span>
+              </div>
+            ) : null}
           </div>
         ) : null}
 
@@ -362,7 +366,6 @@ export default function CoachForm({
           )}
         </div>
 
-        {/* ===== VIDEOS: EMBEDS + LINKS ===== */}
         {result ? (
           <div className="mt-8 border-t border-white/10 pt-6">
             <div className="mb-3 text-xs uppercase tracking-widest text-zinc-500">Recommended Videos</div>
@@ -370,13 +373,8 @@ export default function CoachForm({
             {embedded.length > 0 ? (
               <div className="grid gap-5 md:grid-cols-2">
                 {embedded.map((v) => (
-                  <div
-                    key={v.id}
-                    className="overflow-hidden rounded-2xl border border-white/18 bg-zinc-950/60"
-                  >
-                    <div className="px-4 py-3 text-sm text-zinc-200 border-b border-white/10">
-                      {v.title}
-                    </div>
+                  <div key={v.id} className="overflow-hidden rounded-2xl border border-white/18 bg-zinc-950/60">
+                    <div className="px-4 py-3 text-sm text-zinc-200 border-b border-white/10">{v.title}</div>
                     <div className="aspect-video w-full">
                       <iframe
                         className="h-full w-full"
@@ -422,9 +420,7 @@ export default function CoachForm({
                   rel="noopener noreferrer"
                   className="rounded-xl border border-white/20 bg-zinc-950/60 px-4 py-2 text-sm text-zinc-100 hover:bg-zinc-900"
                 >
-                  {(v.title || "Open video").length > 30
-                    ? (v.title || "Open video").slice(0, 30) + "…"
-                    : (v.title || "Open video")}{" "}
+                  {(v.title || "Open video").length > 30 ? (v.title || "Open video").slice(0, 30) + "…" : v.title || "Open video"}{" "}
                   ↗
                 </a>
               ))}
