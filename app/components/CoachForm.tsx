@@ -1,3 +1,4 @@
+// app/components/CoachForm.tsx
 "use client";
 
 import { useMemo, useState } from "react";
@@ -64,91 +65,51 @@ function clientFallbackVideos(params: {
   // DRUMS
   if (x.includes("drum")) {
     return [
-      {
-        title: "Single Stroke Roll – Rudiment Lesson",
-        url: "https://www.youtube.com/watch?v=KjpGoOq-0gc",
-      },
-      {
-        title: "Practice Pad Warmup – Hands & Timing",
-        url: "https://www.youtube.com/watch?v=nxM7i_GPars",
-      },
+      { title: "Single Stroke Roll – Rudiment Lesson", url: "https://www.youtube.com/watch?v=KjpGoOq-0gc" },
+      { title: "Practice Pad Warmup – Hands & Timing", url: "https://www.youtube.com/watch?v=nxM7i_GPars" },
     ];
   }
 
   // GUITAR
   if (x.includes("guitar")) {
     return [
-      {
-        title: "One Minute Changes – Faster Chord Switching",
-        url: "https://www.youtube.com/watch?v=Ck73R_GjowE",
-      },
-      {
-        title: "Strumming & Rhythm Control",
-        url: "https://www.youtube.com/watch?v=9iVDuMN1BJA",
-      },
+      { title: "One Minute Changes – Faster Chord Switching", url: "https://www.youtube.com/watch?v=Ck73R_GjowE" },
+      { title: "Strumming & Rhythm Control", url: "https://www.youtube.com/watch?v=9iVDuMN1BJA" },
     ];
   }
 
-  // BASS (goal-aware fallback)
+  // BASS
   if (x.includes("bass")) {
     if (wantsScales) {
       return [
-        {
-          title: "Beginning The Major Scale (Bass Lesson)",
-          url: "https://www.youtube.com/watch?v=2bvgAbWRdIA",
-        },
-        {
-          title: "How To Practice (and USE) Scales Like A Pro (Bass)",
-          url: "https://www.youtube.com/watch?v=J7NxTxpklHY",
-        },
+        { title: "Beginning The Major Scale (Bass Lesson)", url: "https://www.youtube.com/watch?v=2bvgAbWRdIA" },
+        { title: "How To Practice (and USE) Scales Like A Pro (Bass)", url: "https://www.youtube.com/watch?v=J7NxTxpklHY" },
       ];
     }
     return [
-      {
-        title: "Major Scale Practice Routine & Technique Workout (Bass)",
-        url: "https://www.youtube.com/watch?v=lSQT91b4Pxg",
-      },
-      {
-        title: "Simple & Effective Major Scale Exercise (Bass)",
-        url: "https://www.youtube.com/watch?v=Ox9YvhQFTR8",
-      },
+      { title: "Major Scale Practice Routine & Technique Workout (Bass)", url: "https://www.youtube.com/watch?v=lSQT91b4Pxg" },
+      { title: "Simple & Effective Major Scale Exercise (Bass)", url: "https://www.youtube.com/watch?v=Ox9YvhQFTR8" },
     ];
   }
 
-  // KEYS/PIANO/KEYBOARD/SYNTH (fallback: search links)
+  // KEYBOARDS
   if (x.includes("keyboard") || x.includes("keys") || x.includes("piano") || x.includes("synth")) {
     return [
-      {
-        title: "Beginner Piano Practice Routine (Search)",
-        url: "https://www.youtube.com/results?search_query=beginner+piano+practice+routine",
-      },
-      {
-        title: "Piano Hand Independence Beginner (Search)",
-        url: "https://www.youtube.com/results?search_query=piano+hand+independence+beginner",
-      },
+      { title: "Beginner Piano Practice Routine (Search)", url: "https://www.youtube.com/results?search_query=beginner+piano+practice+routine" },
+      { title: "Piano Hand Independence Beginner (Search)", url: "https://www.youtube.com/results?search_query=piano+hand+independence+beginner" },
     ];
   }
 
-  // VOCALS (fallback: search links)
+  // VOCALS
   if (x.includes("vocal") || x.includes("sing")) {
     return [
-      {
-        title: "Vocal Warmups for Beginners (Search)",
-        url: "https://www.youtube.com/results?search_query=vocal+warmups+for+beginners",
-      },
-      {
-        title: "Breath Support Basics for Singing (Search)",
-        url: "https://www.youtube.com/results?search_query=breath+support+basics+singing",
-      },
+      { title: "Vocal Warmups for Beginners (Search)", url: "https://www.youtube.com/results?search_query=vocal+warmups+for+beginners" },
+      { title: "Breath Support Basics for Singing (Search)", url: "https://www.youtube.com/results?search_query=breath+support+basics+singing" },
     ];
   }
 
-  // DEFAULT
   return [
-    {
-      title: "How To Practice (General) (Search)",
-      url: "https://www.youtube.com/results?search_query=how+to+practice+music+effectively",
-    },
+    { title: "How To Practice Music Effectively (Search)", url: "https://www.youtube.com/results?search_query=how+to+practice+music+effectively" },
   ];
 }
 
@@ -172,6 +133,7 @@ export default function CoachForm({
 
   const [videos, setVideos] = useState<VideoRec[]>([]);
 
+  // ✅ Debug: show server received + API version
   const [serverReceived, setServerReceived] = useState<{
     instrument?: string;
     mode?: string;
@@ -179,19 +141,18 @@ export default function CoachForm({
     genre?: string;
   } | null>(null);
 
+  const [apiVersion, setApiVersion] = useState<string>("");
+
+  // Sheet music / tabs UI
   const [includeSheetMusic, setIncludeSheetMusic] = useState(false);
   const [songName, setSongName] = useState("");
 
   const ugUrl = songName.trim()
-    ? `https://www.ultimate-guitar.com/search.php?search_type=title&value=${encodeURIComponent(
-        songName.trim()
-      )}`
+    ? `https://www.ultimate-guitar.com/search.php?search_type=title&value=${encodeURIComponent(songName.trim())}`
     : "";
 
   const ytSongUrl = songName.trim()
-    ? `https://www.youtube.com/results?search_query=${encodeURIComponent(
-        `${songName.trim()} ${instrument} tutorial`
-      )}`
+    ? `https://www.youtube.com/results?search_query=${encodeURIComponent(`${songName.trim()} ${instrument} tutorial`)}`
     : "";
 
   const field =
@@ -202,6 +163,7 @@ export default function CoachForm({
     setResult("");
     setVideos([]);
     setServerReceived(null);
+    setApiVersion("");
 
     const instrumentTrim = (instrument || "").trim();
 
@@ -223,6 +185,8 @@ export default function CoachForm({
 
       const data = await res.json();
 
+      // ✅ capture version + received
+      setApiVersion(data?.version || "");
       if (data?.received) setServerReceived(data.received);
 
       setResult(data.text ?? data.error ?? "No response.");
@@ -255,14 +219,11 @@ export default function CoachForm({
 
   return (
     <div className="grid gap-10">
+      {/* ===== FORM ===== */}
       <div className="grid gap-6 md:grid-cols-3">
         <label className="grid gap-1 text-sm">
           <span className="text-zinc-400">Mode</span>
-          <select
-            value={mode}
-            onChange={(e) => setMode(e.target.value as Mode)}
-            className={field}
-          >
+          <select value={mode} onChange={(e) => setMode(e.target.value as Mode)} className={field}>
             <option value="practice_plan">Practice Plan</option>
             <option value="warmups">Warmups</option>
             <option value="chords">Grooves / Ideas</option>
@@ -273,11 +234,7 @@ export default function CoachForm({
         {/* ✅ Instrument dropdown */}
         <label className="grid gap-1 text-sm">
           <span className="text-zinc-400">Instrument</span>
-          <select
-            value={instrument}
-            onChange={(e) => onInstrumentChange(e.target.value)}
-            className={field}
-          >
+          <select value={instrument} onChange={(e) => onInstrumentChange(e.target.value)} className={field}>
             <option value="Guitar">Guitar</option>
             <option value="Drums">Drums</option>
             <option value="Bass">Bass</option>
@@ -288,11 +245,7 @@ export default function CoachForm({
 
         <label className="grid gap-1 text-sm">
           <span className="text-zinc-400">Level</span>
-          <select
-            value={level}
-            onChange={(e) => setLevel(e.target.value)}
-            className={field}
-          >
+          <select value={level} onChange={(e) => setLevel(e.target.value)} className={field}>
             <option>Beginner</option>
             <option>Intermediate</option>
             <option>Advanced</option>
@@ -324,14 +277,10 @@ export default function CoachForm({
 
       <label className="grid gap-1 text-sm">
         <span className="text-zinc-400">Last session notes</span>
-        <textarea
-          rows={3}
-          value={lastSessionNotes}
-          onChange={(e) => setLastSessionNotes(e.target.value)}
-          className={field}
-        />
+        <textarea rows={3} value={lastSessionNotes} onChange={(e) => setLastSessionNotes(e.target.value)} className={field} />
       </label>
 
+      {/* ===== SHEET MUSIC UI (links) ===== */}
       <div className="rounded-3xl border border-white/18 ring-1 ring-white/10 bg-zinc-950/55 p-5 shadow-sm">
         <div className="flex items-center gap-3 mb-3">
           <input
@@ -340,9 +289,7 @@ export default function CoachForm({
             onChange={(e) => setIncludeSheetMusic(e.target.checked)}
             className="h-4 w-4 accent-white"
           />
-          <span className="text-sm text-zinc-200 font-medium">
-            Include sheet music / tabs
-          </span>
+          <span className="text-sm text-zinc-200 font-medium">Include sheet music / tabs</span>
         </div>
 
         <label className="grid gap-2">
@@ -379,6 +326,7 @@ export default function CoachForm({
         )}
       </div>
 
+      {/* ===== BUTTON ===== */}
       <button
         onClick={runCoach}
         disabled={loading}
@@ -387,10 +335,15 @@ export default function CoachForm({
         {loading ? "Generating practice plan…" : "Generate Practice Plan"}
       </button>
 
+      {/* ===== OUTPUT ===== */}
       <div className="rounded-3xl border border-white/25 ring-1 ring-white/15 bg-zinc-950/55 p-6 shadow-inner">
-        <div className="mb-3 text-xs uppercase tracking-widest text-zinc-500">
-          Lesson Output
-        </div>
+        <div className="mb-3 text-xs uppercase tracking-widest text-zinc-500">Lesson Output</div>
+
+        {apiVersion ? (
+          <div className="mb-2 text-xs text-zinc-500">
+            API version: <span className="text-zinc-300">{apiVersion}</span>
+          </div>
+        ) : null}
 
         {serverReceived?.instrument ? (
           <div className="mb-4 text-xs text-zinc-500">
@@ -409,11 +362,10 @@ export default function CoachForm({
           )}
         </div>
 
+        {/* ===== VIDEOS: EMBEDS + LINKS ===== */}
         {result ? (
           <div className="mt-8 border-t border-white/10 pt-6">
-            <div className="mb-3 text-xs uppercase tracking-widest text-zinc-500">
-              Recommended Videos
-            </div>
+            <div className="mb-3 text-xs uppercase tracking-widest text-zinc-500">Recommended Videos</div>
 
             {embedded.length > 0 ? (
               <div className="grid gap-5 md:grid-cols-2">
@@ -449,9 +401,7 @@ export default function CoachForm({
                 ))}
               </div>
             ) : (
-              <p className="text-zinc-500">
-                No embeddable videos found (links may still be available below).
-              </p>
+              <p className="text-zinc-500">No embeddable videos found (links may still be available below).</p>
             )}
 
             <div className="mt-4 flex flex-wrap gap-3">
