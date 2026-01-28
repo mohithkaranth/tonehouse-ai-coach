@@ -1,8 +1,6 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
 
 type Mode = "practice_plan" | "warmups" | "chords" | "next_session";
 
@@ -11,10 +9,63 @@ type VideoRec = {
   url: string;
 };
 
+type PlanJSON = {
+  instrument: string;
+  mode: string;
+  level: string;
+  genre: string;
+  goals: string;
+  focusMetric: string;
+  dayByDay: Array<{
+    day: number;
+    title: string;
+    blocks: Array<{
+      name: string;
+      minutes: number;
+      bullets: string[];
+    }>;
+  }>;
+  notes?: string[];
+};
+
 type DebugInfo = {
+  parseError?: string;
+  raw?: string;
+  planInstrument?: string;
+  planMode?: string;
   reason?: string;
   firstMeaningfulLine?: string;
 };
+
+function planToMarkdown(plan: PlanJSON): string {
+  const lines: string[] = [];
+  lines.push(`# Instrument: ${plan.instrument}`);
+  lines.push(``);
+  lines.push(`**Mode:** ${plan.mode.replaceAll("_", " ")}`);
+  lines.push(`**Level:** ${plan.level}`);
+  lines.push(`**Genre:** ${plan.genre}`);
+  lines.push(`**Goals:** ${plan.goals}`);
+  lines.push(``);
+  lines.push(`## Focus Metric`);
+  lines.push(`- ${plan.focusMetric}`);
+  lines.push(``);
+  lines.push(`## Day-by-day plan`);
+  for (const d of plan.dayByDay) {
+    lines.push(`### Day ${d.day}: ${d.title}`);
+    for (const b of d.blocks) {
+      lines.push(`**${b.name} (${b.minutes} min)**`);
+      for (const bullet of b.bullets) {
+        lines.push(`- ${bullet}`);
+      }
+      lines.push(``);
+    }
+  }
+  if (plan.notes?.length) {
+    lines.push(`## Notes`);
+    for (const n of plan.notes) lines.push(`- ${n}`);
+  }
+  return lines.join("\n");
+}
 
 function extractYouTubeId(url: string): string | null {
   try {
@@ -42,26 +93,8 @@ function extractYouTubeId(url: string): string | null {
   }
 }
 
-function includesAny(text: string, keywords: string[]) {
-  const t = (text || "").toLowerCase();
-  return keywords.some((k) => t.includes(k));
-}
-
-function clientFallbackVideos(params: { instrument: string; goals: string }): VideoRec[] {
-  const x = params.instrument.toLowerCase();
-  const goals = (params.goals || "").toLowerCase();
-
-  const wantsScales = includesAny(goals, [
-    "scale",
-    "scales",
-    "major scale",
-    "minor scale",
-    "modes",
-    "arpeggio",
-    "arpeggios",
-    "fretboard",
-    "fingerboard",
-  ]);
+function clientFallbackVideos(instrument: string): VideoRec[] {
+  const x = (instrument || "").toLowerCase();
 
   if (x.includes("drum")) {
     return [
@@ -78,19 +111,13 @@ function clientFallbackVideos(params: { instrument: string; goals: string }): Vi
   }
 
   if (x.includes("bass")) {
-    if (wantsScales) {
-      return [
-        { title: "Beginning The Major Scale (Bass Lesson)", url: "https://www.youtube.com/watch?v=2bvgAbWRdIA" },
-        { title: "How To Practice (and USE) Scales Like A Pro (Bass)", url: "https://www.youtube.com/watch?v=J7NxTxpklHY" },
-      ];
-    }
     return [
-      { title: "Major Scale Practice Routine & Technique Workout (Bass)", url: "https://www.youtube.com/watch?v=lSQT91b4Pxg" },
-      { title: "Simple & Effective Major Scale Exercise (Bass)", url: "https://www.youtube.com/watch?v=Ox9YvhQFTR8" },
+      { title: "Beginning The Major Scale (Bass Lesson)", url: "https://www.youtube.com/watch?v=2bvgAbWRdIA" },
+      { title: "How To Practice Scales Like A Pro (Bass)", url: "https://www.youtube.com/watch?v=J7NxTxpklHY" },
     ];
   }
 
-  if (x.includes("keyboard") || x.includes("keys") || x.includes("piano") || x.includes("synth")) {
+  if (x.includes("keyboard") || x.includes("keys") || x.includes("piano")) {
     return [
       { title: "Beginner Piano Practice Routine (Search)", url: "https://www.youtube.com/results?search_query=beginner+piano+practice+routine" },
       { title: "Piano Hand Independence Beginner (Search)", url: "https://www.youtube.com/results?search_query=piano+hand+independence+beginner" },
@@ -105,7 +132,7 @@ function clientFallbackVideos(params: { instrument: string; goals: string }): Vi
   }
 
   return [
-    { title: "How To Practice Music Effectively (Search)", url: "https://www.youtube.com/results?search_query=how+to+practice+music+effectively" },
+    { title: "How to practice music effectively (Search)", url: "https://www.youtube.com/results?search_query=how+to+practice+music+effectively" },
   ];
 }
 
@@ -124,37 +151,17 @@ export default function CoachForm({
   const [daysPerWeek, setDaysPerWeek] = useState("5");
   const [lastSessionNotes, setLastSessionNotes] = useState("");
 
-  const [result, setResult] = useState<string>("");
+  const [resultMarkdown, setResultMarkdown] = useState<string>("");
   const [loading, setLoading] = useState(false);
   const [videos, setVideos] = useState<VideoRec[]>([]);
 
-  const [serverReceived, setServerReceived] = useState<{
-    instrument?: string;
-    mode?: string;
-    level?: string;
-    genre?: string;
-  } | null>(null);
-
+  const [serverReceived, setServerReceived] = useState<any>(null);
   const [apiVersion, setApiVersion] = useState<string>("");
   const [debugInfo, setDebugInfo] = useState<DebugInfo | null>(null);
 
-  const [includeSheetMusic, setIncludeSheetMusic] = useState(false);
-  const [songName, setSongName] = useState("");
-
-  const ugUrl = songName.trim()
-    ? `https://www.ultimate-guitar.com/search.php?search_type=title&value=${encodeURIComponent(songName.trim())}`
-    : "";
-
-  const ytSongUrl = songName.trim()
-    ? `https://www.youtube.com/results?search_query=${encodeURIComponent(`${songName.trim()} ${instrument} tutorial`)}`
-    : "";
-
-  const field =
-    "rounded-2xl border border-white/18 ring-1 ring-white/10 bg-zinc-950/55 px-4 py-3 text-zinc-100 placeholder:text-zinc-600 outline-none transition focus:ring-2 focus:ring-white/20 focus:border-white/30 shadow-sm";
-
   async function runCoach() {
     setLoading(true);
-    setResult("");
+    setResultMarkdown("");
     setVideos([]);
     setServerReceived(null);
     setApiVersion("");
@@ -182,24 +189,25 @@ export default function CoachForm({
       if (data?.received) setServerReceived(data.received);
       if (data?.debug) setDebugInfo(data.debug);
 
-      setResult(data.text ?? data.error ?? "No response.");
-      setVideos(Array.isArray(data.videos) ? data.videos : []);
+      // ✅ New API returns ok + plan
+      if (data?.ok && data?.plan) {
+        setResultMarkdown(planToMarkdown(data.plan as PlanJSON));
+      } else {
+        setResultMarkdown(data?.error || "No response.");
+      }
+
+      setVideos(Array.isArray(data?.videos) ? data.videos : []);
     } catch {
-      setResult("Something went wrong. Please try again.");
+      setResultMarkdown("Something went wrong. Please try again.");
     } finally {
       setLoading(false);
     }
   }
 
-  const smartYouTubeSearchUrl = useMemo(() => {
-    const q = `${instrument} ${level} ${genre} ${mode.replaceAll("_", " ")} ${goals}`;
-    return `https://www.youtube.com/results?search_query=${encodeURIComponent(q)}`;
-  }, [instrument, level, genre, mode, goals]);
-
   const effectiveVideos = useMemo(() => {
     if (videos && videos.length > 0) return videos;
-    return clientFallbackVideos({ instrument, goals });
-  }, [videos, instrument, goals]);
+    return clientFallbackVideos(instrument);
+  }, [videos, instrument]);
 
   const embedded = useMemo(() => {
     const items: { id: string; title: string; url: string }[] = [];
@@ -209,6 +217,9 @@ export default function CoachForm({
     }
     return items.slice(0, 2);
   }, [effectiveVideos]);
+
+  const field =
+    "rounded-2xl border border-white/18 ring-1 ring-white/10 bg-zinc-950/55 px-4 py-3 text-zinc-100 placeholder:text-zinc-600 outline-none transition focus:ring-2 focus:ring-white/20 focus:border-white/30 shadow-sm";
 
   return (
     <div className="grid gap-10">
@@ -271,51 +282,6 @@ export default function CoachForm({
         <textarea rows={3} value={lastSessionNotes} onChange={(e) => setLastSessionNotes(e.target.value)} className={field} />
       </label>
 
-      <div className="rounded-3xl border border-white/18 ring-1 ring-white/10 bg-zinc-950/55 p-5 shadow-sm">
-        <div className="flex items-center gap-3 mb-3">
-          <input
-            type="checkbox"
-            checked={includeSheetMusic}
-            onChange={(e) => setIncludeSheetMusic(e.target.checked)}
-            className="h-4 w-4 accent-white"
-          />
-          <span className="text-sm text-zinc-200 font-medium">Include sheet music / tabs</span>
-        </div>
-
-        <label className="grid gap-2">
-          <span className="text-sm text-zinc-400">Song name</span>
-          <input
-            value={songName}
-            onChange={(e) => setSongName(e.target.value)}
-            placeholder="e.g. Tom Sawyer"
-            disabled={!includeSheetMusic}
-            className={`${field} ${includeSheetMusic ? "" : "opacity-50"}`}
-          />
-        </label>
-
-        {songName.trim() && (
-          <div className="mt-3 flex flex-wrap gap-3">
-            <a
-              href={ugUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="rounded-xl border border-white/20 bg-zinc-950/60 px-4 py-2 text-sm text-zinc-100 hover:bg-zinc-900"
-            >
-              Open Ultimate Guitar ↗
-            </a>
-
-            <a
-              href={ytSongUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="rounded-xl border border-white/20 bg-zinc-950/60 px-4 py-2 text-sm text-zinc-100 hover:bg-zinc-900"
-            >
-              Search YouTube for this song ↗
-            </a>
-          </div>
-        )}
-      </div>
-
       <button
         onClick={runCoach}
         disabled={loading}
@@ -342,31 +308,22 @@ export default function CoachForm({
           </div>
         ) : null}
 
-        {/* ✅ Show debug when present */}
-        {debugInfo?.reason ? (
+        {debugInfo?.parseError || debugInfo?.raw ? (
           <div className="mb-4 rounded-2xl border border-white/10 bg-zinc-950/60 p-4 text-xs text-zinc-400">
             <div className="text-zinc-300 font-medium mb-1">Debug</div>
-            <div>
-              reason: <span className="text-zinc-200">{debugInfo.reason}</span>
-            </div>
-            {debugInfo.firstMeaningfulLine ? (
-              <div className="mt-1">
-                firstMeaningfulLine:{" "}
-                <span className="text-zinc-200">{debugInfo.firstMeaningfulLine}</span>
+            {debugInfo.parseError ? <div>parseError: <span className="text-zinc-200">{debugInfo.parseError}</span></div> : null}
+            {debugInfo.raw ? (
+              <div className="mt-2">
+                raw (truncated):
+                <pre className="mt-2 whitespace-pre-wrap text-zinc-300">{debugInfo.raw}</pre>
               </div>
             ) : null}
           </div>
         ) : null}
 
-        <div className="prose prose-invert max-w-none prose-p:my-2 prose-ul:my-2 prose-li:my-1 prose-h2:mt-4 prose-h2:mb-2 prose-h3:mt-3 prose-h3:mb-1">
-          {result ? (
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>{result}</ReactMarkdown>
-          ) : (
-            <p className="text-zinc-500">Your structured lesson plan will appear here.</p>
-          )}
-        </div>
+        <pre className="whitespace-pre-wrap text-zinc-100">{resultMarkdown || "Your structured lesson plan will appear here."}</pre>
 
-        {result ? (
+        {resultMarkdown ? (
           <div className="mt-8 border-t border-white/10 pt-6">
             <div className="mb-3 text-xs uppercase tracking-widest text-zinc-500">Recommended Videos</div>
 
@@ -398,33 +355,7 @@ export default function CoachForm({
                   </div>
                 ))}
               </div>
-            ) : (
-              <p className="text-zinc-500">No embeddable videos found (links may still be available below).</p>
-            )}
-
-            <div className="mt-4 flex flex-wrap gap-3">
-              <a
-                href={smartYouTubeSearchUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="rounded-xl border border-white/20 bg-zinc-950/60 px-4 py-2 text-sm text-zinc-100 hover:bg-zinc-900"
-              >
-                Search YouTube for more ↗
-              </a>
-
-              {effectiveVideos.slice(0, 4).map((v) => (
-                <a
-                  key={v.url}
-                  href={v.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="rounded-xl border border-white/20 bg-zinc-950/60 px-4 py-2 text-sm text-zinc-100 hover:bg-zinc-900"
-                >
-                  {(v.title || "Open video").length > 30 ? (v.title || "Open video").slice(0, 30) + "…" : v.title || "Open video"}{" "}
-                  ↗
-                </a>
-              ))}
-            </div>
+            ) : null}
           </div>
         ) : null}
       </div>

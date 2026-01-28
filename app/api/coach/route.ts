@@ -3,7 +3,26 @@ import { NextResponse } from "next/server";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const COACH_API_VERSION = "coach-v10-fix-string-instruments-2026-01-28";
+const COACH_API_VERSION = "coach-v11-json-output-2026-01-28";
+
+type PlanJSON = {
+  instrument: string;
+  mode: string;
+  level: string;
+  genre: string;
+  goals: string;
+  focusMetric: string;
+  dayByDay: Array<{
+    day: number;
+    title: string;
+    blocks: Array<{
+      name: string;
+      minutes: number;
+      bullets: string[];
+    }>;
+  }>;
+  notes?: string[];
+};
 
 type VideoRec = { title: string; url: string };
 
@@ -52,213 +71,107 @@ function pickVideos(params: { instrument: string }): VideoRec[] {
   return [];
 }
 
-/** Ignore empty lines + common “Sure!/Here’s…” preambles */
-function firstMeaningfulLine(text: string): string {
-  const lines = String(text ?? "").split(/\r?\n/).map((l) => l.trim());
-  for (const l of lines) {
-    if (!l) continue;
-
-    const lower = l.toLowerCase();
-    if (
-      lower === "sure!" ||
-      lower === "sure." ||
-      lower.startsWith("sure,") ||
-      lower.startsWith("of course") ||
-      lower.startsWith("here’s") ||
-      lower.startsWith("here is") ||
-      lower.startsWith("here's")
-    ) {
-      continue;
-    }
-
-    return l;
-  }
-  return "";
-}
-
-/** Strip simple markdown wrappers like ** **, __ __, ` `, and heading prefix */
-function normalizeLine(line: string): string {
-  let s = String(line ?? "").trim();
-  s = s.replace(/^#{1,6}\s*/, "").trim();
-  s = s.replace(/^(\*\*|__|`)+/, "").replace(/(\*\*|__|`)+$/, "").trim();
-  s = s.replace(/[.!]+$/, "").trim();
-  return s;
-}
-
-/**
- * Tolerant header check:
- * Accepts:
- * - "Instrument: Guitar"
- * - "Instrument: Guitar 🎸"
- * - "Instrument: Guitar (Beginner)"
- * - "Instrument: Guitar - Rock"
- */
-function headerMatches(output: string, instrument: string) {
-  const inst = String(instrument ?? "").trim();
-  const instLower = toLower(inst);
-
-  const first = normalizeLine(firstMeaningfulLine(output));
-  const firstLower = toLower(first);
-
-  if (!firstLower.startsWith("instrument:")) return { ok: false, firstLine: first };
-
-  const after = firstLower.replace(/^instrument:\s*/, "");
-  const ok = after.startsWith(instLower);
-
-  return { ok, firstLine: first };
-}
-
-function containsAny(outLower: string, words: string[]) {
-  return words.some((w) => outLower.includes(w));
-}
-
-function looksWrongInstrument(output: string, instrument: string) {
-  const out = String(output ?? "").trim();
-  const outLower = toLower(out);
-  const instLower = toLower(String(instrument ?? "").trim());
-
-  const header = headerMatches(out, instrument);
-  if (!header.ok) {
-    return { wrong: true, reason: "header_mismatch", headerLine: header.firstLine };
-  }
-
-  // Strong “not this instrument” indicators
-  const vocalWords = ["vocal", "sing", "singer", "breath support", "diaphragm", "resonance", "vibrato"];
-
-  // IMPORTANT:
-  // We do NOT forbid "string instruments" for Guitar/Bass anymore,
-  // because guitar IS a string instrument and it was causing false rejects.
-
-  if (instLower.includes("drum")) {
-    const forbidden = [
-      ...vocalWords,
-      // Generic drifting language that is NOT drums:
-      "string instrument",
-      "string instruments",
-      "hanon",
-      "piano",
-      "keyboard",
-      "guitar",
-      "bass",
-      "chord",
-      "chords",
-      "scale",
-      "scales",
-      "strum",
-      "fretting",
-      "fret",
-      "arpeggio",
-      "arpeggios",
-    ];
-    if (containsAny(outLower, forbidden)) {
-      return { wrong: true, reason: "drums_forbidden_keywords", headerLine: header.firstLine };
-    }
-    return { wrong: false, reason: "ok", headerLine: header.firstLine };
-  }
-
-  if (instLower.includes("guitar")) {
-    // ✅ For guitar: only block vocals + very specific drum-rudiment language + piano hanon
-    // (Allow references like "play with a drum loop" etc.)
-    const forbidden = [
-      ...vocalWords,
-      "hanon",
-      "rudiment",
-      "paradiddle",
-      "single stroke",
-      "double stroke",
-      "stickings",
-      "hi-hat", // optional; keep if you really want
-    ];
-    if (containsAny(outLower, forbidden)) {
-      return { wrong: true, reason: "guitar_forbidden_keywords", headerLine: header.firstLine };
-    }
-    return { wrong: false, reason: "ok", headerLine: header.firstLine };
-  }
-
-  if (instLower.includes("bass")) {
-    const forbidden = [
-      ...vocalWords,
-      "hanon",
-      "rudiment",
-      "paradiddle",
-      "single stroke",
-      "double stroke",
-      "stickings",
-      "hi-hat",
-    ];
-    if (containsAny(outLower, forbidden)) {
-      return { wrong: true, reason: "bass_forbidden_keywords", headerLine: header.firstLine };
-    }
-    return { wrong: false, reason: "ok", headerLine: header.firstLine };
-  }
-
-  // Keyboards/Vocals: header lock only (for now)
-  return { wrong: false, reason: "ok", headerLine: header.firstLine };
-}
-
-function buildPrompt(params: {
+function buildJsonPrompt(params: {
   mode: string;
   instrument: string;
   level: string;
   goals: string;
   genre: string;
   timePerDay: string;
-  daysPerWeek: string;
+  daysPerWeek: number;
   lastSessionNotes: string;
   retry?: boolean;
 }) {
-  const {
-    mode,
-    instrument,
-    level,
-    goals,
-    genre,
-    timePerDay,
-    daysPerWeek,
-    lastSessionNotes,
-    retry,
-  } = params;
+  const { mode, instrument, level, goals, genre, timePerDay, daysPerWeek, lastSessionNotes, retry } =
+    params;
 
   return `
 You are Tonehouse AI Coach.
 
-STRICT INSTRUMENT LOCK:
-- The ONLY instrument for this plan is: "${instrument}".
-- Write the plan ONLY for "${instrument}".
-- START IMMEDIATELY with: Instrument: ${instrument}
-- No intro text. No preamble.
+Return ONLY valid JSON (no Markdown, no backticks, no extra text).
+Your entire response MUST be a single JSON object.
 
-${retry ? `RETRY MODE:
-- Your previous output failed the instrument lock checks.
-- Start immediately with: Instrument: ${instrument}
-- Do not mention other instruments or instrument-specific techniques for other instruments.
-` : ""}
+CONSTRAINTS:
+- instrument MUST be exactly: "${instrument}"
+- mode MUST be exactly: "${mode}"
+- dayByDay MUST have exactly ${daysPerWeek} items (Day 1..Day ${daysPerWeek})
+- Each block.minutes must be a number (integer)
+- Each block.bullets must be an array of strings
+
+${retry ? `RETRY:
+- Your previous output was not valid JSON or didn’t follow constraints.
+- Output ONLY the JSON object.` : ""}
 
 USER CONTEXT:
-Instrument: ${instrument}
-Mode: ${mode.replaceAll("_", " ")}
-Level: ${level}
-Genre: ${genre}
-Goals: ${goals}
-Time per day: ${timePerDay}
-Days per week: ${daysPerWeek}
-Last session notes: ${lastSessionNotes}
+instrument: ${instrument}
+mode: ${mode}
+level: ${level}
+genre: ${genre}
+goals: ${goals}
+timePerDay: ${timePerDay}
+daysPerWeek: ${daysPerWeek}
+lastSessionNotes: ${lastSessionNotes}
 
-OUTPUT REQUIREMENTS:
-- Markdown
-- Headings + bullet points
-- Day-by-day template (Day 1..Day ${daysPerWeek})
-- Include a "Focus Metric"
-
-INSTRUMENT GUIDANCE:
-- DRUMS: rudiments, stickings, subdivisions, independence, tempo control, groove, fills (snare/kick/hat or practice pad)
-- GUITAR: chords, fretting/picking, strumming, scales, timing, chord changes
-- BASS: groove, timing, muting, locking with drums, fingerstyle/pick
-- KEYBOARDS: hand independence, voicings, scales/arpeggios, metronome
-- VOCALS: breath support, pitch, resonance, warmups
-
-BEGIN NOW.
+JSON SHAPE (must match):
+{
+  "instrument": "${instrument}",
+  "mode": "${mode}",
+  "level": "${level}",
+  "genre": "${genre}",
+  "goals": "${goals}",
+  "focusMetric": "string",
+  "dayByDay": [
+    {
+      "day": 1,
+      "title": "string",
+      "blocks": [
+        { "name": "Warmup", "minutes": 10, "bullets": ["..."] }
+      ]
+    }
+  ],
+  "notes": ["optional strings"]
+}
 `.trim();
+}
+
+function safeParseJson(text: string): { ok: true; value: any } | { ok: false; error: string } {
+  try {
+    const trimmed = String(text ?? "").trim();
+
+    // Some models still accidentally wrap in ```json ... ```
+    const cleaned = trimmed
+      .replace(/^```json\s*/i, "")
+      .replace(/^```\s*/i, "")
+      .replace(/```$/i, "")
+      .trim();
+
+    const value = JSON.parse(cleaned);
+    return { ok: true, value };
+  } catch (e: any) {
+    return { ok: false, error: e?.message || "JSON parse error" };
+  }
+}
+
+function isPlanJson(x: any): x is PlanJSON {
+  if (!x || typeof x !== "object") return false;
+  if (typeof x.instrument !== "string") return false;
+  if (typeof x.mode !== "string") return false;
+  if (!Array.isArray(x.dayByDay)) return false;
+  if (typeof x.focusMetric !== "string") return false;
+
+  for (const d of x.dayByDay) {
+    if (!d || typeof d !== "object") return false;
+    if (typeof d.day !== "number") return false;
+    if (typeof d.title !== "string") return false;
+    if (!Array.isArray(d.blocks)) return false;
+    for (const b of d.blocks) {
+      if (!b || typeof b !== "object") return false;
+      if (typeof b.name !== "string") return false;
+      if (typeof b.minutes !== "number") return false;
+      if (!Array.isArray(b.bullets)) return false;
+    }
+  }
+  return true;
 }
 
 export async function POST(req: Request) {
@@ -266,7 +179,7 @@ export async function POST(req: Request) {
 
   if (!apiKey) {
     return NextResponse.json(
-      { version: COACH_API_VERSION, error: "Missing OPENAI_API_KEY." },
+      { version: COACH_API_VERSION, ok: false, error: "Missing OPENAI_API_KEY." },
       { status: 500 }
     );
   }
@@ -283,13 +196,14 @@ export async function POST(req: Request) {
     const goals = String(body.goals ?? "Improve timing and technique");
     const genre = String(body.genre ?? "Rock");
     const timePerDay = String(body.timePerDay ?? "30 minutes");
-    const daysPerWeek = String(body.daysPerWeek ?? "5");
+    const daysPerWeekNum = Number(body.daysPerWeek ?? 5);
+    const daysPerWeek = Number.isFinite(daysPerWeekNum) ? Math.max(1, Math.min(7, daysPerWeekNum)) : 5;
     const lastSessionNotes = String(body.lastSessionNotes ?? "");
 
     const videos = pickVideos({ instrument });
 
     async function generateOnce(retry: boolean) {
-      const prompt = buildPrompt({
+      const prompt = buildJsonPrompt({
         mode,
         instrument,
         level,
@@ -304,38 +218,53 @@ export async function POST(req: Request) {
       const completion = await client.chat.completions.create({
         model: "gpt-4o-mini",
         temperature: 0.2,
-        max_tokens: 1200,
+        max_tokens: 1400,
         messages: [
           {
             role: "system",
             content:
-              "Follow the selected instrument strictly. Start immediately with the Instrument line. No mixed-instrument generic plans.",
+              "Return ONLY valid JSON. No Markdown. No extra commentary. Match the schema exactly.",
           },
           { role: "user", content: prompt },
         ],
       });
 
-      return completion.choices[0]?.message?.content?.trim() ?? "No response.";
+      return completion.choices[0]?.message?.content?.trim() ?? "";
     }
 
-    let text = await generateOnce(false);
+    let raw = await generateOnce(false);
 
-    let verdict = looksWrongInstrument(text, instrument);
-    if (verdict.wrong) {
-      text = await generateOnce(true);
-      verdict = looksWrongInstrument(text, instrument);
+    let parsed = safeParseJson(raw);
+    if (!parsed.ok) {
+      raw = await generateOnce(true);
+      parsed = safeParseJson(raw);
     }
 
-    if (verdict.wrong) {
+    if (!parsed.ok) {
       return NextResponse.json(
         {
           version: COACH_API_VERSION,
-          error: "AI output drifted to the wrong instrument (even after retry). Please try again.",
+          ok: false,
+          error: "Model did not return valid JSON.",
           received: { instrument, mode, level, genre },
-          debug: {
-            reason: verdict.reason,
-            firstMeaningfulLine: verdict.headerLine,
-          },
+          debug: { parseError: parsed.error, raw: raw.slice(0, 1200) },
+          videos,
+        },
+        { status: 500 }
+      );
+    }
+
+    const plan = parsed.value;
+
+    // Validate shape + enforce instrument/mode match
+    if (!isPlanJson(plan) || plan.instrument !== instrument || plan.mode !== mode) {
+      return NextResponse.json(
+        {
+          version: COACH_API_VERSION,
+          ok: false,
+          error: "Model returned JSON but it did not match the required schema/constraints.",
+          received: { instrument, mode, level, genre },
+          debug: { planInstrument: plan?.instrument, planMode: plan?.mode, raw: raw.slice(0, 1200) },
           videos,
         },
         { status: 500 }
@@ -344,13 +273,14 @@ export async function POST(req: Request) {
 
     return NextResponse.json({
       version: COACH_API_VERSION,
+      ok: true,
       received: { instrument, mode, level, genre },
-      text,
+      plan,
       videos,
     });
   } catch (err: any) {
     return NextResponse.json(
-      { version: COACH_API_VERSION, error: err?.message ?? "Unknown error" },
+      { version: COACH_API_VERSION, ok: false, error: err?.message ?? "Unknown error" },
       { status: 500 }
     );
   }
