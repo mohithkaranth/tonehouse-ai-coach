@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const COACH_API_VERSION = "coach-v12-level-aware-videos-2026-01-28";
+const COACH_API_VERSION = "coach-v13-dynamic-youtube-2026-01-28";
 
 type PlanJSON = {
   instrument: string;
@@ -47,175 +47,150 @@ function normMode(mode: string) {
 }
 
 /**
- * ✅ Level-aware and mode-aware curated videos (stable, no YouTube API dependency)
- * We intentionally use well-known evergreen topics. If a link ever dies, swap just the URL.
+ * ✅ Option B: YouTube search query builder that adapts to instrument + level + mode + goals + genre.
+ * We keep this simple + robust; YouTube search is pretty good with the right keywords.
  */
-function pickVideos(params: { instrument: string; level: string; mode: string }): VideoRec[] {
-  const inst = toLower(params.instrument);
+function buildYouTubeQuery(params: {
+  instrument: string;
+  level: string;
+  mode: string;
+  goals: string;
+  genre: string;
+}) {
+  const instrument = String(params.instrument || "").trim();
   const level = normLevel(params.level);
   const mode = normMode(params.mode);
+  const goals = String(params.goals || "").trim();
+  const genre = String(params.genre || "").trim();
 
-  // --- DRUMS ---
+  const modePhrase =
+    mode === "warmups"
+      ? "warmup exercises"
+      : mode === "chords"
+      ? "grooves ideas exercises"
+      : mode === "next_session"
+      ? "next practice session plan"
+      : "practice plan";
+
+  // Add some instrument-specific anchors so results don’t drift
+  const instLower = toLower(instrument);
+  const anchors: string[] = [];
+
+  if (instLower.includes("drum")) anchors.push("rudiments", "timing", "coordination");
+  else if (instLower.includes("guitar")) anchors.push("technique", "timing", "chords");
+  else if (instLower.includes("bass")) anchors.push("groove", "timing", "locking with drums");
+  else if (instLower.includes("keyboard") || instLower.includes("piano") || instLower.includes("keys"))
+    anchors.push("scales", "voicings", "hand independence");
+  else if (instLower.includes("vocal") || instLower.includes("sing")) anchors.push("breath support", "pitch", "warmups");
+
+  // Keep it compact: YouTube search likes shorter queries
+  const parts = [
+    level,
+    instrument,
+    genre ? genre : "",
+    modePhrase,
+    goals ? goals : "",
+    ...anchors,
+    "lesson",
+  ]
+    .filter(Boolean)
+    .join(" ");
+
+  return parts;
+}
+
+/**
+ * ✅ YouTube Data API search (server-side)
+ * Returns top N video watch URLs.
+ */
+async function searchYouTubeVideos(params: {
+  apiKey: string;
+  query: string;
+  maxResults: number;
+}): Promise<VideoRec[]> {
+  const { apiKey, query, maxResults } = params;
+
+  const url = new URL("https://www.googleapis.com/youtube/v3/search");
+  url.searchParams.set("part", "snippet");
+  url.searchParams.set("type", "video");
+  url.searchParams.set("maxResults", String(maxResults));
+  url.searchParams.set("q", query);
+  url.searchParams.set("key", apiKey);
+  // Optional: bias to SG/English a bit (harmless if ignored)
+  url.searchParams.set("regionCode", "SG");
+  url.searchParams.set("relevanceLanguage", "en");
+
+  const res = await fetch(url.toString(), { method: "GET" });
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`YouTube API error ${res.status}: ${text}`);
+  }
+
+  const data = await res.json();
+
+  const items: any[] = Array.isArray(data?.items) ? data.items : [];
+  const out: VideoRec[] = [];
+
+  for (const it of items) {
+    const vid = it?.id?.videoId;
+    const title = it?.snippet?.title;
+    if (vid && typeof vid === "string") {
+      out.push({
+        title: typeof title === "string" ? title : "YouTube video",
+        url: `https://www.youtube.com/watch?v=${vid}`,
+      });
+    }
+  }
+
+  return out;
+}
+
+/**
+ * ✅ Fallback videos (if YouTube fails or key missing)
+ * Keep these stable so the UI always has something.
+ */
+function fallbackVideos(instrument: string): VideoRec[] {
+  const inst = toLower(instrument);
+
   if (inst.includes("drum")) {
-    if (level === "beginner") {
-      if (mode === "warmups") {
-        return [
-          { title: "Practice Pad Warmup – Hands & Timing", url: "https://www.youtube.com/watch?v=nxM7i_GPars" },
-          { title: "Single Stroke Roll – Rudiment Lesson", url: "https://www.youtube.com/watch?v=KjpGoOq-0gc" },
-        ];
-      }
-      return [
-        { title: "8th-note Hi-hat Groove Basics (Search)", url: "https://www.youtube.com/results?search_query=beginner+drum+groove+8th+note+hi+hat" },
-        { title: "Single Stroke Roll – Rudiment Lesson", url: "https://www.youtube.com/watch?v=KjpGoOq-0gc" },
-      ];
-    }
-
-    if (level === "intermediate") {
-      if (mode === "warmups") {
-        return [
-          { title: "Drum Warmups: Control, Speed & Consistency (Search)", url: "https://www.youtube.com/results?search_query=drum+warmup+control+speed+consistency" },
-          { title: "Paradiddle Variations (Search)", url: "https://www.youtube.com/results?search_query=paradiddle+variations+drums+intermediate" },
-        ];
-      }
-      return [
-        { title: "Independence / Coordination (Search)", url: "https://www.youtube.com/results?search_query=drum+independence+coordination+intermediate" },
-        { title: "16th-note Hi-hat Groove Control (Search)", url: "https://www.youtube.com/results?search_query=16th+note+hi+hat+groove+intermediate+drums" },
-      ];
-    }
-
-    // advanced
-    if (mode === "warmups") {
-      return [
-        { title: "Advanced Hand Technique & Speed (Search)", url: "https://www.youtube.com/results?search_query=advanced+drum+hand+technique+speed+workout" },
-        { title: "Advanced Coordination / Polyrhythms (Search)", url: "https://www.youtube.com/results?search_query=advanced+drum+polyrhythm+coordination" },
-      ];
-    }
     return [
-      { title: "Metric Modulation (Search)", url: "https://www.youtube.com/results?search_query=metric+modulation+drums+lesson" },
-      { title: "Odd Time Grooves (Search)", url: "https://www.youtube.com/results?search_query=odd+time+grooves+drums+advanced" },
+      { title: "Single Stroke Roll – Rudiment Lesson", url: "https://www.youtube.com/watch?v=KjpGoOq-0gc" },
+      { title: "Practice Pad Warmup – Hands & Timing", url: "https://www.youtube.com/watch?v=nxM7i_GPars" },
     ];
   }
 
-  // --- GUITAR ---
   if (inst.includes("guitar")) {
-    if (level === "beginner") {
-      if (mode === "warmups") {
-        return [
-          { title: "Beginner Guitar Warmup Exercises (Search)", url: "https://www.youtube.com/results?search_query=beginner+guitar+warmup+exercises" },
-          { title: "One Minute Changes – Faster Chord Switching", url: "https://www.youtube.com/watch?v=Ck73R_GjowE" },
-        ];
-      }
-      if (mode === "chords") {
-        return [
-          { title: "Beginner Strumming Patterns (Search)", url: "https://www.youtube.com/results?search_query=beginner+guitar+strumming+patterns" },
-          { title: "One Minute Changes – Faster Chord Switching", url: "https://www.youtube.com/watch?v=Ck73R_GjowE" },
-        ];
-      }
-      return [
-        { title: "One Minute Changes – Faster Chord Switching", url: "https://www.youtube.com/watch?v=Ck73R_GjowE" },
-        { title: "Strumming & Rhythm Control", url: "https://www.youtube.com/watch?v=9iVDuMN1BJA" },
-      ];
-    }
-
-    if (level === "intermediate") {
-      if (mode === "warmups") {
-        return [
-          { title: "Alternate Picking Workout (Search)", url: "https://www.youtube.com/results?search_query=alternate+picking+workout+intermediate+guitar" },
-          { title: "Fretboard Note Memorization (Search)", url: "https://www.youtube.com/results?search_query=fretboard+notes+exercise+guitar+intermediate" },
-        ];
-      }
-      if (mode === "chords") {
-        return [
-          { title: "Barre Chords Clean & Fast (Search)", url: "https://www.youtube.com/results?search_query=barre+chords+clean+fast+intermediate+guitar" },
-          { title: "Rhythm Guitar Tight Timing (Search)", url: "https://www.youtube.com/results?search_query=rhythm+guitar+tight+timing+intermediate" },
-        ];
-      }
-      return [
-        { title: "Pentatonic Scale Phrases (Search)", url: "https://www.youtube.com/results?search_query=pentatonic+scale+phrases+intermediate+guitar" },
-        { title: "Strumming Dynamics & Muting (Search)", url: "https://www.youtube.com/results?search_query=guitar+strumming+dynamics+muting+intermediate" },
-      ];
-    }
-
-    // advanced
-    if (mode === "warmups") {
-      return [
-        { title: "Advanced Picking Speed Routine (Search)", url: "https://www.youtube.com/results?search_query=advanced+picking+speed+routine+guitar" },
-        { title: "Legato / Economy Picking Drill (Search)", url: "https://www.youtube.com/results?search_query=legato+economy+picking+drill+advanced+guitar" },
-      ];
-    }
-    if (mode === "chords") {
-      return [
-        { title: "Jazz Chord Voicings (Search)", url: "https://www.youtube.com/results?search_query=jazz+guitar+chord+voicings+advanced" },
-        { title: "Neo-soul Chord Tricks (Search)", url: "https://www.youtube.com/results?search_query=neo+soul+guitar+chords+advanced" },
-      ];
-    }
     return [
-      { title: "Advanced Improvisation Concepts (Search)", url: "https://www.youtube.com/results?search_query=advanced+guitar+improvisation+concepts" },
-      { title: "Timing / Subdivision for Guitarists (Search)", url: "https://www.youtube.com/results?search_query=timing+subdivision+for+guitarists+advanced" },
+      { title: "One Minute Changes – Faster Chord Switching", url: "https://www.youtube.com/watch?v=Ck73R_GjowE" },
+      { title: "Strumming & Rhythm Control", url: "https://www.youtube.com/watch?v=9iVDuMN1BJA" },
     ];
   }
 
-  // --- BASS ---
   if (inst.includes("bass")) {
-    if (level === "beginner") {
-      return [
-        { title: "Beginner Bass Groove & Timing (Search)", url: "https://www.youtube.com/results?search_query=beginner+bass+groove+timing+exercise" },
-        { title: "Beginning The Major Scale (Bass Lesson)", url: "https://www.youtube.com/watch?v=2bvgAbWRdIA" },
-      ];
-    }
-    if (level === "intermediate") {
-      return [
-        { title: "Bass Muting Techniques (Search)", url: "https://www.youtube.com/results?search_query=bass+muting+technique+intermediate" },
-        { title: "16th-note Bass Groove Control (Search)", url: "https://www.youtube.com/results?search_query=16th+note+bass+groove+intermediate" },
-      ];
-    }
     return [
-      { title: "Advanced Bass Fills & Pocket (Search)", url: "https://www.youtube.com/results?search_query=advanced+bass+fills+pocket" },
-      { title: "Chord Tones & Walking Bass (Search)", url: "https://www.youtube.com/results?search_query=chord+tones+walking+bass+advanced" },
+      { title: "Beginning The Major Scale (Bass Lesson)", url: "https://www.youtube.com/watch?v=2bvgAbWRdIA" },
+      { title: "How To Practice Scales Like A Pro (Bass)", url: "https://www.youtube.com/watch?v=J7NxTxpklHY" },
     ];
   }
 
-  // --- KEYBOARDS ---
   if (inst.includes("keyboard") || inst.includes("keys") || inst.includes("piano")) {
-    if (level === "beginner") {
-      return [
-        { title: "Beginner Piano Practice Routine (Search)", url: "https://www.youtube.com/results?search_query=beginner+piano+practice+routine" },
-        { title: "Piano Hand Independence Beginner (Search)", url: "https://www.youtube.com/results?search_query=piano+hand+independence+beginner" },
-      ];
-    }
-    if (level === "intermediate") {
-      return [
-        { title: "Piano Chord Voicings Intermediate (Search)", url: "https://www.youtube.com/results?search_query=piano+chord+voicings+intermediate" },
-        { title: "Scales & Arpeggios Workout (Search)", url: "https://www.youtube.com/results?search_query=piano+scales+arpeggios+workout" },
-      ];
-    }
     return [
-      { title: "Advanced Voicings & Voice Leading (Search)", url: "https://www.youtube.com/results?search_query=advanced+piano+voicings+voice+leading" },
-      { title: "Polyrhythms on Piano (Search)", url: "https://www.youtube.com/results?search_query=polyrhythms+piano+advanced" },
+      { title: "Beginner Piano Practice Routine (Search)", url: "https://www.youtube.com/results?search_query=beginner+piano+practice+routine" },
+      { title: "Piano Hand Independence Beginner (Search)", url: "https://www.youtube.com/results?search_query=piano+hand+independence+beginner" },
     ];
   }
 
-  // --- VOCALS ---
   if (inst.includes("vocal") || inst.includes("sing")) {
-    if (level === "beginner") {
-      return [
-        { title: "Vocal Warmups for Beginners (Search)", url: "https://www.youtube.com/results?search_query=vocal+warmups+for+beginners" },
-        { title: "Breath Support Basics for Singing (Search)", url: "https://www.youtube.com/results?search_query=breath+support+basics+singing" },
-      ];
-    }
-    if (level === "intermediate") {
-      return [
-        { title: "Vocal Placement & Resonance (Search)", url: "https://www.youtube.com/results?search_query=vocal+placement+resonance+intermediate" },
-        { title: "Pitch Accuracy Drills (Search)", url: "https://www.youtube.com/results?search_query=pitch+accuracy+drills+singing" },
-      ];
-    }
     return [
-      { title: "Vocal Runs & Agility (Search)", url: "https://www.youtube.com/results?search_query=vocal+runs+agility+advanced" },
-      { title: "Mixed Voice Technique (Search)", url: "https://www.youtube.com/results?search_query=mixed+voice+technique+advanced" },
+      { title: "Vocal Warmups for Beginners (Search)", url: "https://www.youtube.com/results?search_query=vocal+warmups+for+beginners" },
+      { title: "Breath Support Basics for Singing (Search)", url: "https://www.youtube.com/results?search_query=breath+support+basics+singing" },
     ];
   }
 
-  return [];
+  return [
+    { title: "How to practice music effectively (Search)", url: "https://www.youtube.com/results?search_query=how+to+practice+music+effectively" },
+  ];
 }
 
 function buildJsonPrompt(params: {
@@ -320,9 +295,9 @@ function isPlanJson(x: any): x is PlanJSON {
 }
 
 export async function POST(req: Request) {
-  const apiKey = process.env.OPENAI_API_KEY;
+  const openaiKey = process.env.OPENAI_API_KEY;
 
-  if (!apiKey) {
+  if (!openaiKey) {
     return NextResponse.json(
       { version: COACH_API_VERSION, ok: false, error: "Missing OPENAI_API_KEY." },
       { status: 500 }
@@ -330,7 +305,7 @@ export async function POST(req: Request) {
   }
 
   const OpenAI = (await import("openai")).default;
-  const client = new OpenAI({ apiKey });
+  const client = new OpenAI({ apiKey: openaiKey });
 
   try {
     const body = await req.json();
@@ -345,7 +320,26 @@ export async function POST(req: Request) {
     const daysPerWeek = Number.isFinite(daysPerWeekNum) ? Math.max(1, Math.min(7, daysPerWeekNum)) : 5;
     const lastSessionNotes = String(body.lastSessionNotes ?? "");
 
-    const videos = pickVideos({ instrument, level, mode });
+    // ✅ Dynamic YouTube recommendations
+    const youtubeKey = process.env.YOUTUBE_API_KEY;
+    const ytQuery = buildYouTubeQuery({ instrument, level, mode, goals, genre });
+
+    let videos: VideoRec[] = [];
+    let youtubeDebug: any = null;
+
+    if (youtubeKey) {
+      try {
+        videos = await searchYouTubeVideos({ apiKey: youtubeKey, query: ytQuery, maxResults: 3 });
+      } catch (e: any) {
+        youtubeDebug = { error: e?.message || "YouTube search failed", query: ytQuery };
+        videos = [];
+      }
+    } else {
+      youtubeDebug = { error: "Missing YOUTUBE_API_KEY", query: ytQuery };
+    }
+
+    // Fallback so UI always shows something
+    if (!videos.length) videos = fallbackVideos(instrument);
 
     async function generateOnce(retry: boolean) {
       const prompt = buildJsonPrompt({
@@ -392,7 +386,7 @@ export async function POST(req: Request) {
           ok: false,
           error: "Model did not return valid JSON.",
           received: { instrument, mode, level, genre },
-          debug: { parseError: parsed.error, raw: raw.slice(0, 1200) },
+          debug: { parseError: parsed.error, raw: raw.slice(0, 1200), youtube: youtubeDebug },
           videos,
         },
         { status: 500 }
@@ -408,7 +402,7 @@ export async function POST(req: Request) {
           ok: false,
           error: "Model returned JSON but did not match schema/constraints.",
           received: { instrument, mode, level, genre },
-          debug: { planInstrument: plan?.instrument, planMode: plan?.mode, raw: raw.slice(0, 1200) },
+          debug: { planInstrument: plan?.instrument, planMode: plan?.mode, raw: raw.slice(0, 1200), youtube: youtubeDebug },
           videos,
         },
         { status: 500 }
@@ -421,6 +415,7 @@ export async function POST(req: Request) {
       received: { instrument, mode, level, genre },
       plan,
       videos,
+      debug: { youtube: youtubeDebug, youtubeQuery: ytQuery }, // helpful while testing; remove later if you want
     });
   } catch (err: any) {
     return NextResponse.json(
