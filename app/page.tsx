@@ -37,20 +37,26 @@ export default function HomePage() {
           </Link>
 
           {/* Metronome */}
-          <div className="rounded-3xl border border-zinc-800 bg-zinc-900/30 p-6 opacity-50">
+          <Link
+            href="/metronome"
+            className="rounded-3xl border border-zinc-800 bg-zinc-900/50 p-6 hover:bg-zinc-900 transition"
+          >
             <h2 className="text-xl font-medium">🎛 Metronome</h2>
-            <p className="mt-2 text-sm text-zinc-500">
-              Coming soon
+            <p className="mt-2 text-sm text-zinc-400">
+              Practice timing with adjustable BPM and accents.
             </p>
-          </div>
+          </Link>
 
           {/* Tuner */}
-          <div className="rounded-3xl border border-zinc-800 bg-zinc-900/30 p-6 opacity-50">
+          <Link
+            href="/tuner"
+            className="rounded-3xl border border-zinc-800 bg-zinc-900/50 p-6 hover:bg-zinc-900 transition"
+          >
             <h2 className="text-xl font-medium">🎸 Tuner</h2>
-            <p className="mt-2 text-sm text-zinc-500">
-              Coming soon
+            <p className="mt-2 text-sm text-zinc-400">
+              Tune your instrument using your microphone.
             </p>
-          </div>
+          </Link>
 
         </div>
       </div>
