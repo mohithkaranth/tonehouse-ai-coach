@@ -309,7 +309,7 @@ export default function ProgressionsClient() {
         tonality={tonality}
         style={style}
         length={length}
-        roots={CHROMATIC_NOTES}
+        roots={[...CHROMATIC_NOTES]}
         styles={STYLE_OPTIONS}
         lengths={LENGTH_OPTIONS}
         onRootChange={setRoot}
