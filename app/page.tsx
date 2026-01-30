@@ -36,6 +36,17 @@ export default function HomePage() {
             </p>
           </Link>
 
+          {/* Backing Track Finder */}
+          <Link
+            href="/backing-tracks"
+            className="rounded-3xl border border-zinc-800 bg-zinc-900/50 p-6 hover:bg-zinc-900 transition"
+          >
+            <h2 className="text-xl font-medium">🎶 Backing Track Finder</h2>
+            <p className="mt-2 text-sm text-zinc-400">
+              Find YouTube backing tracks by key, style and tempo.
+            </p>
+          </Link>
+
         </div>
       </div>
     </main>
