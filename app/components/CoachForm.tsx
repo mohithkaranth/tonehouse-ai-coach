@@ -30,13 +30,6 @@ type PlanJSON = {
   notes?: string[];
 };
 
-type DebugInfo = {
-  parseError?: string;
-  raw?: string;
-  youtube?: { error?: string; query?: string };
-  youtubeQuery?: string;
-};
-
 function planToMarkdown(plan: PlanJSON): string {
   const lines: string[] = [];
 
@@ -102,41 +95,74 @@ function clientFallbackVideos(instrument: string): VideoRec[] {
 
   if (x.includes("drum")) {
     return [
-      { title: "Single Stroke Roll – Rudiment Lesson", url: "https://www.youtube.com/watch?v=KjpGoOq-0gc" },
-      { title: "Practice Pad Warmup – Hands & Timing", url: "https://www.youtube.com/watch?v=nxM7i_GPars" },
+      {
+        title: "Single Stroke Roll – Rudiment Lesson",
+        url: "https://www.youtube.com/watch?v=KjpGoOq-0gc",
+      },
+      {
+        title: "Practice Pad Warmup – Hands & Timing",
+        url: "https://www.youtube.com/watch?v=nxM7i_GPars",
+      },
     ];
   }
 
   if (x.includes("guitar")) {
     return [
-      { title: "One Minute Changes – Faster Chord Switching", url: "https://www.youtube.com/watch?v=Ck73R_GjowE" },
-      { title: "Strumming & Rhythm Control", url: "https://www.youtube.com/watch?v=9iVDuMN1BJA" },
+      {
+        title: "One Minute Changes – Faster Chord Switching",
+        url: "https://www.youtube.com/watch?v=Ck73R_GjowE",
+      },
+      {
+        title: "Strumming & Rhythm Control",
+        url: "https://www.youtube.com/watch?v=9iVDuMN1BJA",
+      },
     ];
   }
 
   if (x.includes("bass")) {
     return [
-      { title: "Beginning The Major Scale (Bass Lesson)", url: "https://www.youtube.com/watch?v=2bvgAbWRdIA" },
-      { title: "How To Practice Scales Like A Pro (Bass)", url: "https://www.youtube.com/watch?v=J7NxTxpklHY" },
+      {
+        title: "Beginning The Major Scale (Bass Lesson)",
+        url: "https://www.youtube.com/watch?v=2bvgAbWRdIA",
+      },
+      {
+        title: "How To Practice Scales Like A Pro (Bass)",
+        url: "https://www.youtube.com/watch?v=J7NxTxpklHY",
+      },
     ];
   }
 
   if (x.includes("keyboard") || x.includes("keys") || x.includes("piano")) {
     return [
-      { title: "Beginner Piano Practice Routine (Search)", url: "https://www.youtube.com/results?search_query=beginner+piano+practice+routine" },
-      { title: "Piano Hand Independence Beginner (Search)", url: "https://www.youtube.com/results?search_query=piano+hand+independence+beginner" },
+      {
+        title: "Beginner Piano Practice Routine (Search)",
+        url: "https://www.youtube.com/results?search_query=beginner+piano+practice+routine",
+      },
+      {
+        title: "Piano Hand Independence Beginner (Search)",
+        url: "https://www.youtube.com/results?search_query=piano+hand+independence+beginner",
+      },
     ];
   }
 
   if (x.includes("vocal") || x.includes("sing")) {
     return [
-      { title: "Vocal Warmups for Beginners (Search)", url: "https://www.youtube.com/results?search_query=vocal+warmups+for+beginners" },
-      { title: "Breath Support Basics for Singing (Search)", url: "https://www.youtube.com/results?search_query=breath+support+basics+singing" },
+      {
+        title: "Vocal Warmups for Beginners (Search)",
+        url: "https://www.youtube.com/results?search_query=vocal+warmups+for+beginners",
+      },
+      {
+        title: "Breath Support Basics for Singing (Search)",
+        url: "https://www.youtube.com/results?search_query=breath+support+basics+singing",
+      },
     ];
   }
 
   return [
-    { title: "How to practice music effectively (Search)", url: "https://www.youtube.com/results?search_query=how+to+practice+music+effectively" },
+    {
+      title: "How to practice music effectively (Search)",
+      url: "https://www.youtube.com/results?search_query=how+to+practice+music+effectively",
+    },
   ];
 }
 
@@ -161,11 +187,6 @@ export default function CoachForm({
 
   // Videos returned by /api/coach
   const [videos, setVideos] = useState<VideoRec[]>([]);
-
-  // Debug
-  const [serverReceived, setServerReceived] = useState<any>(null);
-  const [apiVersion, setApiVersion] = useState<string>("");
-  const [debugInfo, setDebugInfo] = useState<DebugInfo | null>(null);
 
   // Sheet music / tabs UI (restored)
   const [includeSheetMusic, setIncludeSheetMusic] = useState(false);
@@ -195,9 +216,6 @@ export default function CoachForm({
     setLoading(true);
     setResultMd("");
     setVideos([]);
-    setServerReceived(null);
-    setApiVersion("");
-    setDebugInfo(null);
 
     try {
       const res = await fetch("/api/coach", {
@@ -216,10 +234,6 @@ export default function CoachForm({
       });
 
       const data = await res.json();
-
-      setApiVersion(data?.version || "");
-      if (data?.received) setServerReceived(data.received);
-      if (data?.debug) setDebugInfo(data.debug);
 
       if (data?.ok && data?.plan) {
         setResultMd(planToMarkdown(data.plan as PlanJSON));
@@ -257,7 +271,11 @@ export default function CoachForm({
       <div className="grid gap-6 md:grid-cols-3">
         <label className="grid gap-1 text-sm">
           <span className="text-zinc-400">Mode</span>
-          <select value={mode} onChange={(e) => setMode(e.target.value as Mode)} className={field}>
+          <select
+            value={mode}
+            onChange={(e) => setMode(e.target.value as Mode)}
+            className={field}
+          >
             <option value="practice_plan">Practice Plan</option>
             <option value="warmups">Warmups</option>
             <option value="chords">Grooves / Ideas</option>
@@ -282,7 +300,11 @@ export default function CoachForm({
 
         <label className="grid gap-1 text-sm">
           <span className="text-zinc-400">Level</span>
-          <select value={level} onChange={(e) => setLevel(e.target.value)} className={field}>
+          <select
+            value={level}
+            onChange={(e) => setLevel(e.target.value)}
+            className={field}
+          >
             <option>Beginner</option>
             <option>Intermediate</option>
             <option>Advanced</option>
@@ -293,23 +315,40 @@ export default function CoachForm({
       <div className="grid gap-6 md:grid-cols-3">
         <label className="grid gap-1 text-sm">
           <span className="text-zinc-400">Genre</span>
-          <input value={genre} onChange={(e) => setGenre(e.target.value)} className={field} />
+          <input
+            value={genre}
+            onChange={(e) => setGenre(e.target.value)}
+            className={field}
+          />
         </label>
 
         <label className="grid gap-1 text-sm">
           <span className="text-zinc-400">Time per day</span>
-          <input value={timePerDay} onChange={(e) => setTimePerDay(e.target.value)} className={field} />
+          <input
+            value={timePerDay}
+            onChange={(e) => setTimePerDay(e.target.value)}
+            className={field}
+          />
         </label>
 
         <label className="grid gap-1 text-sm">
           <span className="text-zinc-400">Days per week</span>
-          <input value={daysPerWeek} onChange={(e) => setDaysPerWeek(e.target.value)} className={field} />
+          <input
+            value={daysPerWeek}
+            onChange={(e) => setDaysPerWeek(e.target.value)}
+            className={field}
+          />
         </label>
       </div>
 
       <label className="grid gap-1 text-sm">
         <span className="text-zinc-400">Goals</span>
-        <textarea rows={3} value={goals} onChange={(e) => setGoals(e.target.value)} className={field} />
+        <textarea
+          rows={3}
+          value={goals}
+          onChange={(e) => setGoals(e.target.value)}
+          className={field}
+        />
       </label>
 
       <label className="grid gap-1 text-sm">
@@ -324,14 +363,14 @@ export default function CoachForm({
 
       {/* ===== SHEET MUSIC / TABS (RESTORED) ===== */}
       <div className="rounded-3xl border border-white/18 ring-1 ring-white/10 bg-zinc-950/55 p-5 shadow-sm">
-        <div className="flex items-center gap-3 mb-3">
+        <div className="mb-3 flex items-center gap-3">
           <input
             type="checkbox"
             checked={includeSheetMusic}
             onChange={(e) => setIncludeSheetMusic(e.target.checked)}
             className="h-4 w-4 accent-white"
           />
-          <span className="text-sm text-zinc-200 font-medium">
+          <span className="text-sm font-medium text-zinc-200">
             Include sheet music / tabs
           </span>
         </div>
@@ -374,7 +413,7 @@ export default function CoachForm({
       <button
         onClick={runCoach}
         disabled={loading}
-        className="rounded-2xl bg-white/90 py-3 text-sm font-medium text-black transition hover:bg-white disabled:opacity-60 shadow"
+        className="rounded-2xl bg-white/90 py-3 text-sm font-medium text-black shadow transition hover:bg-white disabled:opacity-60"
       >
         {loading ? "Generating practice plan…" : "Generate Practice Plan"}
       </button>
@@ -385,43 +424,13 @@ export default function CoachForm({
           Lesson Output
         </div>
 
-        {apiVersion ? (
-          <div className="mb-2 text-xs text-zinc-500">
-            API version: <span className="text-zinc-300">{apiVersion}</span>
-          </div>
-        ) : null}
-
-        {serverReceived?.instrument ? (
-          <div className="mb-2 text-xs text-zinc-500">
-            Server received:{" "}
-            <span className="text-zinc-300">
-              {serverReceived.instrument} / {serverReceived.mode} / {serverReceived.level} / {serverReceived.genre}
-            </span>
-          </div>
-        ) : null}
-
-        {(debugInfo?.youtube?.query || debugInfo?.youtubeQuery) ? (
-          <div className="mb-4 rounded-2xl border border-white/10 bg-zinc-950/60 p-4 text-xs text-zinc-400">
-            <div className="text-zinc-300 font-medium mb-1">Debug</div>
-            <div>
-              youtubeQuery:{" "}
-              <span className="text-zinc-200">
-                {debugInfo.youtubeQuery || debugInfo.youtube?.query}
-              </span>
-            </div>
-            {debugInfo.youtube?.error ? (
-              <div>
-                youtubeError: <span className="text-zinc-200">{debugInfo.youtube.error}</span>
-              </div>
-            ) : null}
-          </div>
-        ) : null}
-
         <div className="prose prose-invert max-w-none prose-p:my-2 prose-ul:my-2 prose-li:my-1 prose-h2:mt-4 prose-h2:mb-2 prose-h3:mt-3 prose-h3:mb-1">
           {resultMd ? (
             <ReactMarkdown remarkPlugins={[remarkGfm]}>{resultMd}</ReactMarkdown>
           ) : (
-            <p className="text-zinc-500">Your structured lesson plan will appear here.</p>
+            <p className="text-zinc-500">
+              Your structured lesson plan will appear here.
+            </p>
           )}
         </div>
 
@@ -439,7 +448,7 @@ export default function CoachForm({
                     key={v.id}
                     className="overflow-hidden rounded-2xl border border-white/18 bg-zinc-950/60"
                   >
-                    <div className="px-4 py-3 text-sm text-zinc-200 border-b border-white/10">
+                    <div className="border-b border-white/10 px-4 py-3 text-sm text-zinc-200">
                       {v.title}
                     </div>
                     <div className="aspect-video w-full">
@@ -491,7 +500,7 @@ export default function CoachForm({
                 >
                   {(v.title || "Open video").length > 30
                     ? (v.title || "Open video").slice(0, 30) + "…"
-                    : (v.title || "Open video")}{" "}
+                    : v.title || "Open video"}{" "}
                   ↗
                 </a>
               ))}
