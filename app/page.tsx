@@ -47,6 +47,17 @@ export default function HomePage() {
             </p>
           </Link>
 
+          {/* Chord & Scale Finder */}
+          <Link
+            href="/finder"
+            className="rounded-3xl border border-zinc-800 bg-zinc-900/50 p-6 hover:bg-zinc-900 transition"
+          >
+            <h2 className="text-xl font-medium">🎹 Chord &amp; Scale Finder</h2>
+            <p className="mt-2 text-sm text-zinc-400">
+              Explore chords and scales for guitar, bass, and keyboards.
+            </p>
+          </Link>
+
         </div>
       </div>
     </main>
