@@ -58,6 +58,17 @@ export default function HomePage() {
             </p>
           </Link>
 
+          {/* Chord Progressions */}
+          <Link
+            href="/progressions"
+            className="rounded-3xl border border-zinc-800 bg-zinc-900/50 p-6 hover:bg-zinc-900 transition"
+          >
+            <h2 className="text-xl font-medium">🎼 Chord Progressions</h2>
+            <p className="mt-2 text-sm text-zinc-400">
+              Generate common progressions by key and style.
+            </p>
+          </Link>
+
         </div>
       </div>
     </main>
