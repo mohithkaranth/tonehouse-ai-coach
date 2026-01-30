@@ -50,9 +50,9 @@ export default function ScaleResult({ root, type, instrument, onTypeChange }: Sc
       </div>
 
       <div className="mt-6 space-y-4">
-        {instrument === "Keyboards" ? (
+        {instrument === "Piano / Keys" ? (
           <div className="rounded-2xl border border-zinc-800 bg-zinc-950/40 p-4">
-            <p className="text-sm font-medium text-zinc-200">Keyboard notes</p>
+            <p className="text-sm font-medium text-zinc-200">Piano / keys notes</p>
             <p className="mt-2 text-sm text-zinc-400">Play ascending: {notesDisplay}</p>
             <p className="mt-2 text-xs text-zinc-500">Suggested fingering: 1-2-3-1-2-3-4-5</p>
           </div>

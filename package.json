@@ -15,7 +15,8 @@
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "react-markdown": "^10.1.0",
-    "remark-gfm": "^4.0.1"
+    "remark-gfm": "^4.0.1",
+    "tone": "^14.8.49"
   },
   "devDependencies": {
     "@tailwindcss/cli": "^4.1.18",

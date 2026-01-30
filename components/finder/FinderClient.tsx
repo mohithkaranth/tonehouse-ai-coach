@@ -26,6 +26,13 @@ function readStorage<T>(key: string, fallback: T) {
   return stored ? (stored as T) : fallback;
 }
 
+function normalizeInstrument(value: string): Instrument {
+  if (value === "Keyboards") return "Piano / Keys";
+  if (value === "Piano / Keys") return "Piano / Keys";
+  if (value === "Bass") return "Bass";
+  return "Guitar";
+}
+
 export default function FinderClient() {
   const [instrument, setInstrument] = useState<Instrument>(DEFAULT_INSTRUMENT);
   const [mode, setMode] = useState<FinderMode>(DEFAULT_MODE);
@@ -34,7 +41,8 @@ export default function FinderClient() {
   const [scaleType, setScaleType] = useState<ScaleType>(DEFAULT_SCALE);
 
   useEffect(() => {
-    setInstrument(readStorage(STORAGE_KEYS.instrument, DEFAULT_INSTRUMENT));
+    const storedInstrument = readStorage(STORAGE_KEYS.instrument, DEFAULT_INSTRUMENT) as string;
+    setInstrument(normalizeInstrument(storedInstrument));
     setMode(readStorage(STORAGE_KEYS.mode, DEFAULT_MODE));
     setRoot(readStorage(STORAGE_KEYS.root, DEFAULT_ROOT));
   }, []);

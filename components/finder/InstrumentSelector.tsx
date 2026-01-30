@@ -1,6 +1,6 @@
 import type { Instrument } from "./types";
 
-const instruments: Instrument[] = ["Guitar", "Bass", "Keyboards"];
+const instruments: Instrument[] = ["Guitar", "Bass", "Piano / Keys"];
 
 interface InstrumentSelectorProps {
   value: Instrument;
