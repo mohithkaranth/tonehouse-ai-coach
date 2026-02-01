@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { playChord } from "@/lib/audio/chordPlayer";
 import { buildChord } from "@/lib/music";
 import type { ChordType, Instrument, NoteName } from "./types";
@@ -16,8 +15,6 @@ const chordTypes: ChordType[] = [
   "Diminished",
   "Augmented",
 ];
-
-const OPEN_CHORD_ROOTS = ["C", "D", "E", "G", "A"];
 
 const NEEDS_BARRE = ["F", "B", "C#", "D#", "F#", "G#", "A#"];
 
@@ -135,8 +132,17 @@ export default function ChordResult({
       : []);
 
   const handlePlayChord = async () => {
-    if (instrument !== "Guitar") return;
+    // 🎸 BASS — NO CHORDS
+    if (instrument === "Bass") {
+      await playChord([`${root}2`], {
+        durationSec: 1.8,
+        type: "sawtooth",
+        gain: 0.35,
+      });
+      return;
+    }
 
+    // 🎸 GUITAR — FULL CHORD
     await playChord(buildOctaveNotes(tones, 3), {
       arpeggiateMs: 40,
       durationSec: 1.6,
@@ -147,7 +153,9 @@ export default function ChordResult({
 
   return (
     <div className="rounded-3xl border border-zinc-800 bg-zinc-900/40 p-6">
-      <h2 className="text-2xl font-semibold text-zinc-50">{chordName}</h2>
+      <h2 className="text-2xl font-semibold text-zinc-50">
+        {chordName}
+      </h2>
 
       <p className="mt-2 text-sm text-zinc-400">
         Chord tones: {tonesDisplay}
@@ -174,27 +182,29 @@ export default function ChordResult({
         </button>
       </div>
 
-      <div className="mt-6 rounded-2xl border border-zinc-800 bg-zinc-950/40 p-4">
-        <p className="text-sm font-medium text-zinc-200">
-          Guitar shapes
-        </p>
-
-        {shapes.length > 0 ? (
-          <ul className="mt-2 space-y-2 text-sm text-zinc-400">
-            {shapes.map((shape) => (
-              <li key={shape}>
-                <span className="rounded-lg border border-zinc-800 bg-zinc-900/60 px-2 py-1 font-mono text-xs">
-                  {shape}
-                </span>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="mt-2 text-sm text-zinc-400">
-            No shape available.
+      {instrument === "Guitar" && (
+        <div className="mt-6 rounded-2xl border border-zinc-800 bg-zinc-950/40 p-4">
+          <p className="text-sm font-medium text-zinc-200">
+            Guitar shapes
           </p>
-        )}
-      </div>
+
+          {shapes.length > 0 ? (
+            <ul className="mt-2 space-y-2 text-sm text-zinc-400">
+              {shapes.map((shape) => (
+                <li key={shape}>
+                  <span className="rounded-lg border border-zinc-800 bg-zinc-900/60 px-2 py-1 font-mono text-xs">
+                    {shape}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="mt-2 text-sm text-zinc-400">
+              No shape available.
+            </p>
+          )}
+        </div>
+      )}
     </div>
   );
 }
