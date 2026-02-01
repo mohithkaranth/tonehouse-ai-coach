@@ -1,3 +1,7 @@
+"use client";
+
+import { useState } from "react";
+import { playChord } from "@/lib/audio/chordPlayer";
 import { buildChord } from "@/lib/music";
 import type { ChordType, Instrument, NoteName } from "./types";
 
@@ -48,7 +52,6 @@ const GUITAR_SHAPES: Record<string, string[]> = {
   "A|Sus4": ["x02230"],
 };
 
-const bassStrings = ["E", "A", "D", "G"];
 const noteOrder = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"] as const;
 
 function getBassShape(root: NoteName, tones: NoteName[]) {
@@ -68,6 +71,21 @@ function buildInversions(tones: NoteName[]) {
   return [first, second].filter((entry) => entry.length > 0);
 }
 
+function buildOctaveNotes(tones: NoteName[], baseOctave: number) {
+  if (tones.length === 0) return [];
+  let octave = baseOctave;
+  let lastIndex = noteOrder.indexOf(tones[0]);
+
+  return tones.map((note, index) => {
+    const noteIndex = noteOrder.indexOf(note);
+    if (index > 0 && noteIndex <= lastIndex) {
+      octave += 1;
+    }
+    lastIndex = noteIndex;
+    return `${note}${octave}`;
+  });
+}
+
 interface ChordResultProps {
   root: NoteName;
   type: ChordType;
@@ -81,6 +99,42 @@ export default function ChordResult({ root, type, instrument, onTypeChange }: Ch
   const tonesDisplay = tones.join("–");
   const shapes = GUITAR_SHAPES[`${root}|${type}`] ?? [];
   const inversions = buildInversions(tones);
+  const [audioError, setAudioError] = useState<string | null>(null);
+
+  const handlePlayChord = async () => {
+    setAudioError(null);
+
+    try {
+      if (instrument === "Guitar") {
+        await playChord(buildOctaveNotes(tones, 3), {
+          arpeggiateMs: 40,
+          durationSec: 1.6,
+          type: "triangle",
+          gain: 0.16,
+        });
+        return;
+      }
+
+      if (instrument === "Bass") {
+        const fifth = tones[2] ?? tones[1] ?? tones[0];
+        const bassNotes = buildOctaveNotes([tones[0], fifth], 2);
+        await playChord(bassNotes, {
+          durationSec: 1.2,
+          type: "sine",
+          gain: 0.22,
+        });
+        return;
+      }
+
+      await playChord(buildOctaveNotes(tones, 4), {
+        durationSec: 1.5,
+        type: "sine",
+        gain: 0.16,
+      });
+    } catch (error) {
+      setAudioError("Audio playback failed. Please check your browser sound settings.");
+    }
+  };
 
   return (
     <div className="rounded-3xl border border-zinc-800 bg-zinc-900/40 p-6">
@@ -94,17 +148,29 @@ export default function ChordResult({ root, type, instrument, onTypeChange }: Ch
           <label className="text-xs font-medium uppercase tracking-[0.2em] text-zinc-500">
             Chord type
           </label>
-          <select
-            value={type}
-            onChange={(event) => onTypeChange(event.target.value as ChordType)}
-            className="mt-2 w-full rounded-2xl border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm text-zinc-200"
-          >
-            {chordTypes.map((option) => (
-              <option key={option} value={option}>
-                {option}
-              </option>
-            ))}
-          </select>
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            <select
+              value={type}
+              onChange={(event) => onTypeChange(event.target.value as ChordType)}
+              className="min-w-[160px] flex-1 rounded-2xl border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm text-zinc-200"
+            >
+              {chordTypes.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+            <button
+              type="button"
+              onClick={handlePlayChord}
+              className="rounded-full border border-zinc-700 px-4 py-2 text-sm text-zinc-100 transition hover:border-zinc-500"
+            >
+              ▶ Play {instrument} chord
+            </button>
+          </div>
+          {audioError ? (
+            <p className="mt-2 text-xs text-rose-400">{audioError}</p>
+          ) : null}
         </div>
       </div>
 
