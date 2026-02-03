@@ -145,7 +145,8 @@ function readStorage<T>(key: string, fallback: T) {
   return stored as T;
 }
 
-function pickRandom<T>(items: T[]) {
+/** ✅ Accepts readonly arrays (fixes Vercel TypeScript build) */
+function pickRandom<T>(items: readonly T[]): T {
   return items[Math.floor(Math.random() * items.length)];
 }
 
@@ -170,11 +171,7 @@ function addSemitones(note: NoteName, octave: number, semitones: number) {
   return noteNameWithOctave(nextNote, nextOctave);
 }
 
-function buildChordNotes(
-  root: NoteName,
-  octave: number,
-  chordType: ChordType
-) {
+function buildChordNotes(root: NoteName, octave: number, chordType: ChordType) {
   const rootMidi = midiFromNote(root, octave);
   return CHORD_INTERVALS[chordType].map((interval) => {
     const { note, octave: targetOctave } = noteFromMidi(rootMidi + interval);
