@@ -1,7 +1,28 @@
 {
   "id": "lesson-001",
   "instrument": "guitar",
+  "order": 1,
   "title": "Holding the Guitar",
   "summary": "Learn how to sit and hold the guitar correctly.",
-  "practice": []
+  "keyPoints": [
+    "Sit tall with your back supported, not slouched",
+    "Rest the guitar on your thigh or use a strap while seated",
+    "Angle the neck slightly upward for easy reach",
+    "Keep shoulders relaxed and elbows loose",
+    "Let your fretting hand float without gripping the neck",
+    "Adjust strap height so the guitar feels stable"
+  ],
+  "commonMistakes": [
+    "Hunching over the instrument",
+    "Holding the neck too low or too high",
+    "Clamping the guitar with your picking arm",
+    "Tensing shoulders or wrists"
+  ],
+  "practiceDrill": [
+    "Sit, set posture, and check shoulder relaxation",
+    "Lift and lower the neck angle until your wrist feels neutral",
+    "Strum open strings while keeping the guitar steady",
+    "Reset posture after every 15 seconds",
+    "Repeat twice with a strap and without"
+  ]
 }

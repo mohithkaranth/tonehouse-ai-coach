@@ -14,7 +14,9 @@ type Lesson = {
   id: string;
   title: string;
   summary?: string;
-  practice?: string[];
+  keyPoints?: string[];
+  commonMistakes?: string[];
+  practiceDrill?: string[];
 };
 
 type Nav = {
@@ -106,6 +108,32 @@ export default function LessonClient({
           )}
         </div>
 
+        {/* Key points */}
+        <div className="mb-8">
+          <h2 className="mb-3 text-xl font-medium">
+            Key points
+          </h2>
+
+          <ul className="list-disc space-y-2 pl-6 text-zinc-300">
+            {(lesson.keyPoints || []).map((point, i) => (
+              <li key={i}>{point}</li>
+            ))}
+          </ul>
+        </div>
+
+        {/* Common mistakes */}
+        <div className="mb-10">
+          <h2 className="mb-3 text-xl font-medium">
+            Common mistakes
+          </h2>
+
+          <ul className="list-disc space-y-2 pl-6 text-zinc-300">
+            {(lesson.commonMistakes || []).map((mistake, i) => (
+              <li key={i}>{mistake}</li>
+            ))}
+          </ul>
+        </div>
+
         {/* Video */}
         {selectedVideo && (
           <div className="mb-12">
@@ -137,6 +165,19 @@ export default function LessonClient({
           </p>
         )}
 
+        {/* 2-minute practice drill */}
+        <div className="mt-10">
+          <h2 className="mb-3 text-xl font-medium">
+            2-minute practice drill
+          </h2>
+
+          <ul className="list-disc space-y-2 pl-6 text-zinc-300">
+            {(lesson.practiceDrill || []).map((drill, i) => (
+              <li key={i}>{drill}</li>
+            ))}
+          </ul>
+        </div>
+
         {/* Video suggestions */}
         {videos.length > 0 && (
           <div className="mt-8 grid gap-4">
@@ -166,21 +207,6 @@ export default function LessonClient({
             ))}
           </div>
         )}
-
-        {/* Practice */}
-        {lesson.practice?.length ? (
-          <div className="mt-12">
-            <h2 className="mb-4 text-xl font-medium">
-              Practice
-            </h2>
-
-            <ul className="list-disc space-y-2 pl-6 text-zinc-300">
-              {lesson.practice.map((p, i) => (
-                <li key={i}>{p}</li>
-              ))}
-            </ul>
-          </div>
-        ) : null}
 
         {/* Bottom navigation */}
         <div className="mt-16 flex items-center justify-between gap-4">

@@ -1,7 +1,28 @@
 {
   "id": "lesson-002",
   "instrument": "guitar",
+  "order": 2,
   "title": "Basic Finger Placement",
   "summary": "Learn clean fretting technique.",
-  "practice": []
+  "keyPoints": [
+    "Use fingertips so notes ring clearly",
+    "Fret just behind the metal fret, not on top of it",
+    "Keep your thumb centered behind the neck",
+    "Press only hard enough for a clean note",
+    "Curve fingers to avoid muting other strings",
+    "Release pressure between notes to stay relaxed"
+  ],
+  "commonMistakes": [
+    "Flattening fingers and muting strings",
+    "Gripping the neck with the thumb over the top",
+    "Pressing too far back in the fret",
+    "Using too much pressure and tensing up"
+  ],
+  "practiceDrill": [
+    "Fret each string on the first fret and listen for buzz",
+    "Move each finger one fret higher, one at a time",
+    "Check thumb position after every finger change",
+    "Play a slow 1-2-3-4 pattern on each string",
+    "Reset hand shape between strings"
+  ]
 }
