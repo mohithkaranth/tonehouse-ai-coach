@@ -1,0 +1,28 @@
+{
+  "id": "lesson-006",
+  "instrument": "guitar",
+  "order": 6,
+  "title": "Pentatonic Scale Basics",
+  "summary": "Learn minor pentatonic box 1 and simple licks.",
+  "keyPoints": [
+    "Memorize the minor pentatonic box 1 shape",
+    "Use one finger per fret where possible",
+    "Pick with alternating down-up strokes",
+    "Move the shape to change keys",
+    "Use bends and slides for expression",
+    "Learn 2–3 short licks inside the box"
+  ],
+  "commonMistakes": [
+    "Skipping strings or frets in the pattern",
+    "Picking only downstrokes and rushing",
+    "Forgetting the root note positions",
+    "Adding extra notes outside the box"
+  ],
+  "practiceDrill": [
+    "Play the box 1 shape ascending and descending",
+    "Pause on each root note to hear the key",
+    "Play a two-note bend on the 2nd string",
+    "Loop a simple two-bar lick",
+    "Jam for 30 seconds with a backing track"
+  ]
+}

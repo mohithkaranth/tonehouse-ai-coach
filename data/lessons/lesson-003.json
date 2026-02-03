@@ -1,0 +1,28 @@
+{
+  "id": "lesson-003",
+  "instrument": "guitar",
+  "order": 3,
+  "title": "Open Chords",
+  "summary": "Start strumming Em, G, C, D, and Am with clean tone.",
+  "keyPoints": [
+    "Learn the shapes for Em, G, C, D, and Am",
+    "Use fingertips to keep open strings ringing",
+    "Strum through all strings needed for each chord",
+    "Keep your fretting hand relaxed and curved",
+    "Listen for muted strings and adjust slowly",
+    "Aim for smooth, steady chord changes"
+  ],
+  "commonMistakes": [
+    "Letting fingers collapse and mute open strings",
+    "Strumming strings that are not part of the chord",
+    "Rushing chord changes without clean placement",
+    "Pressing too hard and tiring the hand"
+  ],
+  "practiceDrill": [
+    "Strum Em slowly and check every string",
+    "Switch between Em and G four times",
+    "Switch between C and D four times",
+    "Cycle Am → C → D → G with slow downstrokes",
+    "Repeat the cycle with light upstrokes"
+  ]
+}

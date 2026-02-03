@@ -9,7 +9,9 @@ export type Lesson = {
   order?: number;
   title: string;
   summary?: string;
-  practice?: string[];
+  keyPoints?: string[];
+  commonMistakes?: string[];
+  practiceDrill?: string[];
 };
 
 function parseLessonNumber(id: string): number | null {

@@ -1,0 +1,28 @@
+{
+  "id": "lesson-005",
+  "instrument": "guitar",
+  "order": 5,
+  "title": "Strumming Patterns",
+  "summary": "Lock in steady down-up motion with common 4/4 grooves.",
+  "keyPoints": [
+    "Use relaxed down-up motion from the wrist",
+    "Count 1-and-2-and-3-and-4-and",
+    "Start with all downstrokes, then add upstrokes",
+    "Mute lightly with the fretting hand for texture",
+    "Keep the pick gliding across strings",
+    "Stay consistent without a metronome"
+  ],
+  "commonMistakes": [
+    "Tensing the arm and over-strumming",
+    "Stopping the hand on missed strums",
+    "Losing the count when adding upstrokes",
+    "Digging the pick too deep into strings"
+  ],
+  "practiceDrill": [
+    "Strum downstrokes on 1-2-3-4 for 30 seconds",
+    "Add upstrokes on the “ands” while counting",
+    "Try D-DU-U-DU on one chord",
+    "Add light muted strums on beats 2 and 4",
+    "Repeat with a second chord change"
+  ]
+}

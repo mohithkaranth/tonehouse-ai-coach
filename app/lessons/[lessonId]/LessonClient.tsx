@@ -14,7 +14,9 @@ type Lesson = {
   id: string;
   title: string;
   summary?: string;
-  practice?: string[];
+  keyPoints?: string[];
+  commonMistakes?: string[];
+  practiceDrill?: string[];
 };
 
 type Nav = {
@@ -58,8 +60,6 @@ export default function LessonClient({
 
         {/* Top navigation */}
         <div className="mb-10 flex items-center justify-between gap-4">
-
-          {/* Previous */}
           {nav.prevId ? (
             <Link
               href={`/lessons/${nav.prevId}`}
@@ -71,7 +71,6 @@ export default function LessonClient({
             <div />
           )}
 
-          {/* Back to list */}
           <Link
             href="/lessons/guitar"
             className="text-sm text-zinc-400 hover:text-zinc-100 transition"
@@ -79,7 +78,6 @@ export default function LessonClient({
             ← Back to Guitar Lessons
           </Link>
 
-          {/* Next */}
           {nav.nextId ? (
             <Link
               href={`/lessons/${nav.nextId}`}
@@ -90,7 +88,6 @@ export default function LessonClient({
           ) : (
             <div />
           )}
-
         </div>
 
         {/* Header */}
@@ -104,6 +101,32 @@ export default function LessonClient({
               {lesson.summary}
             </p>
           )}
+        </div>
+
+        {/* Key points */}
+        <div className="mb-8">
+          <h2 className="mb-3 text-xl font-medium">
+            Key points
+          </h2>
+
+          <ul className="list-disc space-y-2 pl-6 text-zinc-300">
+            {(lesson.keyPoints || []).map((point, i) => (
+              <li key={i}>{point}</li>
+            ))}
+          </ul>
+        </div>
+
+        {/* Common mistakes */}
+        <div className="mb-10">
+          <h2 className="mb-3 text-xl font-medium">
+            Common mistakes
+          </h2>
+
+          <ul className="list-disc space-y-2 pl-6 text-zinc-300">
+            {(lesson.commonMistakes || []).map((mistake, i) => (
+              <li key={i}>{mistake}</li>
+            ))}
+          </ul>
         </div>
 
         {/* Video */}
@@ -121,11 +144,24 @@ export default function LessonClient({
           </div>
         )}
 
+        {/* 2-minute practice drill */}
+        <div className="mt-10">
+          <h2 className="mb-3 text-xl font-medium">
+            2-minute practice drill
+          </h2>
+
+          <ul className="list-disc space-y-2 pl-6 text-zinc-300">
+            {(lesson.practiceDrill || []).map((drill, i) => (
+              <li key={i}>{drill}</li>
+            ))}
+          </ul>
+        </div>
+
         {/* Suggest button */}
         <button
           onClick={suggestVideos}
           disabled={loading}
-          className="rounded-xl border border-zinc-800 bg-zinc-900 px-5 py-2 hover:bg-zinc-800 transition"
+          className="mt-8 rounded-xl border border-zinc-800 bg-zinc-900 px-5 py-2 hover:bg-zinc-800 transition"
         >
           {loading ? "Searching..." : "🎬 Suggest lesson videos"}
         </button>
@@ -166,21 +202,6 @@ export default function LessonClient({
             ))}
           </div>
         )}
-
-        {/* Practice */}
-        {lesson.practice?.length ? (
-          <div className="mt-12">
-            <h2 className="mb-4 text-xl font-medium">
-              Practice
-            </h2>
-
-            <ul className="list-disc space-y-2 pl-6 text-zinc-300">
-              {lesson.practice.map((p, i) => (
-                <li key={i}>{p}</li>
-              ))}
-            </ul>
-          </div>
-        ) : null}
 
         {/* Bottom navigation */}
         <div className="mt-16 flex items-center justify-between gap-4">
