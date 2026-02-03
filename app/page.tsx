@@ -1,85 +1,175 @@
+"use client";
+
+import SignInOutButton from "@/components/auth/SignInOutButton";
 import Link from "next/link";
+import { useSession } from "next-auth/react";
+
+type CardDef = {
+  title: string;
+  description: string;
+  href: string;
+  requiresAuth?: boolean;
+};
+
+function cn(...classes: Array<string | false | null | undefined>) {
+  return classes.filter(Boolean).join(" ");
+}
+
+function Card({
+  title,
+  description,
+  href,
+  disabled,
+}: {
+  title: string;
+  description: string;
+  href: string;
+  disabled: boolean;
+}) {
+  const baseClass =
+    "rounded-3xl border border-zinc-800 bg-zinc-900/50 p-6 transition";
+  const enabledClass = "hover:bg-zinc-900";
+  const disabledClass =
+    "opacity-60 cursor-not-allowed select-none hover:bg-zinc-900/50";
+
+  const inner = (
+    <div className={cn(baseClass, disabled ? disabledClass : enabledClass)}>
+      <div className="flex items-start justify-between gap-3">
+        <h2 className="text-xl font-medium">{title}</h2>
+
+        {disabled ? (
+          <span className="rounded-full border border-zinc-800 bg-zinc-900 px-3 py-1 text-xs text-zinc-300">
+            🔒 Locked
+          </span>
+        ) : null}
+      </div>
+
+      <p className="mt-2 text-sm text-zinc-400">{description}</p>
+
+      {disabled ? (
+        <p className="mt-4 text-xs text-zinc-500">
+          Sign in to unlock this feature.
+        </p>
+      ) : null}
+    </div>
+  );
+
+  // 🔑 CHANGE STARTS HERE
+  if (disabled) {
+    return (
+      <Link
+        href={`/signin?callbackUrl=${encodeURIComponent(href)}`}
+        className="block"
+      >
+        {inner}
+      </Link>
+    );
+  }
+  // 🔑 CHANGE ENDS HERE
+
+  return (
+    <Link href={href} className="block">
+      {inner}
+    </Link>
+  );
+}
 
 export default function HomePage() {
+  const { status } = useSession();
+  const isLoggedIn = status === "authenticated";
+
+  const cards: CardDef[] = [
+    {
+      title: "🎵 AI Practice Coach",
+      description:
+        "Generate lesson plans, warmups, grooves and progress tracking.",
+      href: "/coach",
+      requiresAuth: true,
+    },
+    {
+      title: "🎸 Guitar Lessons",
+      description: "Structured beginner guitar lessons with guided practice.",
+      href: "/lessons/guitar",
+      requiresAuth: true,
+    },
+    {
+      title: "🎶 Backing Track Finder",
+      description: "Find YouTube backing tracks by key, style and tempo.",
+      href: "/backing-tracks",
+      requiresAuth: false,
+    },
+    {
+      title: "🎧 Ear Training",
+      description: "Intervals, chords, and progressions.",
+      href: "/ear-training",
+      requiresAuth: true,
+    },
+    {
+      title: "🎹 Chord & Scale Finder",
+      description: "Explore chords and scales for guitar, bass, and keyboards.",
+      href: "/finder",
+      requiresAuth: false,
+    },
+    {
+      title: "🎼 Chord Progressions",
+      description: "Generate common progressions by key and style.",
+      href: "/progressions",
+      requiresAuth: false,
+    },
+  ];
+
   return (
     <main className="min-h-screen bg-zinc-950 text-zinc-50">
       <div className="mx-auto max-w-5xl px-6 py-16">
-        <h1 className="text-4xl font-semibold tracking-tight">
-          Tonehouse Studio Apps
-        </h1>
+        {/* Header */}
+        <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h1 className="text-4xl font-semibold tracking-tight">
+              Tonehouse Studio Apps
+            </h1>
 
-        <p className="mt-3 text-zinc-400">
-          Internal tools for students and instructors.
-        </p>
-
-        <div className="mt-10 grid gap-6 md:grid-cols-3">
-
-          {/* AI Coach Card */}
-          <Link
-            href="/coach"
-            className="rounded-3xl border border-zinc-800 bg-zinc-900/50 p-6 hover:bg-zinc-900 transition"
-          >
-            <h2 className="text-xl font-medium">🎵 AI Practice Coach</h2>
-            <p className="mt-2 text-sm text-zinc-400">
-              Generate lesson plans, warmups, grooves and progress tracking.
+            <p className="mt-4 text-zinc-400">
+              Find your innermost rockstar 🎸
             </p>
-          </Link>
 
-          {/* Guitar Lessons */}
-          <Link
-            href="/lessons/guitar"
-            className="rounded-3xl border border-zinc-800 bg-zinc-900/50 p-6 hover:bg-zinc-900 transition"
-          >
-            <h2 className="text-xl font-medium">🎸 Guitar Lessons</h2>
-            <p className="mt-2 text-sm text-zinc-400">
-              Structured beginner guitar lessons with guided practice.
-            </p>
-          </Link>
+            <div className="mt-4 flex gap-3 text-lg text-zinc-500">
+              <span title="Practice">🎸</span>
+              <span title="Rhythm">🥁</span>
+              <span title="Harmony">🎹</span>
+              <span title="Ear Training">🎧</span>
+              <span title="Theory">🎼</span>
+            </div>
 
-          {/* Backing Track Finder */}
-          <Link
-            href="/backing-tracks"
-            className="rounded-3xl border border-zinc-800 bg-zinc-900/50 p-6 hover:bg-zinc-900 transition"
-          >
-            <h2 className="text-xl font-medium">🎶 Backing Track Finder</h2>
-            <p className="mt-2 text-sm text-zinc-400">
-              Find YouTube backing tracks by key, style and tempo.
-            </p>
-          </Link>
+            <div className="mt-4">
+              {isLoggedIn ? (
+                <span className="rounded-full border border-zinc-800 bg-zinc-900 px-4 py-2 text-sm text-zinc-200">
+                  ✅ Signed in
+                </span>
+              ) : (
+                <span className="rounded-full border border-zinc-800 bg-zinc-900 px-4 py-2 text-sm text-zinc-300">
+                  🔒 Sign in to unlock more
+                </span>
+              )}
+            </div>
+          </div>
 
-          {/* Ear Training */}
-          <Link
-            href="/ear-training"
-            className="rounded-3xl border border-zinc-800 bg-zinc-900/50 p-6 hover:bg-zinc-900 transition"
-          >
-            <h2 className="text-xl font-medium">🎧 Ear Training</h2>
-            <p className="mt-2 text-sm text-zinc-400">
-              Intervals, chords, and progressions.
-            </p>
-          </Link>
+          <div className="mt-2 sm:mt-0">
+            <SignInOutButton />
+          </div>
+        </div>
 
-          {/* Chord & Scale Finder */}
-          <Link
-            href="/finder"
-            className="rounded-3xl border border-zinc-800 bg-zinc-900/50 p-6 hover:bg-zinc-900 transition"
-          >
-            <h2 className="text-xl font-medium">🎹 Chord &amp; Scale Finder</h2>
-            <p className="mt-2 text-sm text-zinc-400">
-              Explore chords and scales for guitar, bass, and keyboards.
-            </p>
-          </Link>
+        <div className="mt-10 mb-10 h-px bg-zinc-800" />
 
-          {/* Chord Progressions */}
-          <Link
-            href="/progressions"
-            className="rounded-3xl border border-zinc-800 bg-zinc-900/50 p-6 hover:bg-zinc-900 transition"
-          >
-            <h2 className="text-xl font-medium">🎼 Chord Progressions</h2>
-            <p className="mt-2 text-sm text-zinc-400">
-              Generate common progressions by key and style.
-            </p>
-          </Link>
-
+        <div className="grid gap-6 md:grid-cols-3">
+          {cards.map((c) => (
+            <Card
+              key={c.href}
+              title={c.title}
+              description={c.description}
+              href={c.href}
+              disabled={Boolean(c.requiresAuth) && !isLoggedIn}
+            />
+          ))}
         </div>
       </div>
     </main>
