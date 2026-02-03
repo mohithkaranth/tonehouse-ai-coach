@@ -60,8 +60,6 @@ export default function LessonClient({
 
         {/* Top navigation */}
         <div className="mb-10 flex items-center justify-between gap-4">
-
-          {/* Previous */}
           {nav.prevId ? (
             <Link
               href={`/lessons/${nav.prevId}`}
@@ -73,7 +71,6 @@ export default function LessonClient({
             <div />
           )}
 
-          {/* Back to list */}
           <Link
             href="/lessons/guitar"
             className="text-sm text-zinc-400 hover:text-zinc-100 transition"
@@ -81,7 +78,6 @@ export default function LessonClient({
             ← Back to Guitar Lessons
           </Link>
 
-          {/* Next */}
           {nav.nextId ? (
             <Link
               href={`/lessons/${nav.nextId}`}
@@ -92,7 +88,6 @@ export default function LessonClient({
           ) : (
             <div />
           )}
-
         </div>
 
         {/* Header */}
@@ -149,22 +144,6 @@ export default function LessonClient({
           </div>
         )}
 
-        {/* Suggest button */}
-        <button
-          onClick={suggestVideos}
-          disabled={loading}
-          className="rounded-xl border border-zinc-800 bg-zinc-900 px-5 py-2 hover:bg-zinc-800 transition"
-        >
-          {loading ? "Searching..." : "🎬 Suggest lesson videos"}
-        </button>
-
-        {/* Error */}
-        {error && (
-          <p className="mt-4 text-sm text-red-400">
-            {error}
-          </p>
-        )}
-
         {/* 2-minute practice drill */}
         <div className="mt-10">
           <h2 className="mb-3 text-xl font-medium">
@@ -177,6 +156,22 @@ export default function LessonClient({
             ))}
           </ul>
         </div>
+
+        {/* Suggest button */}
+        <button
+          onClick={suggestVideos}
+          disabled={loading}
+          className="mt-8 rounded-xl border border-zinc-800 bg-zinc-900 px-5 py-2 hover:bg-zinc-800 transition"
+        >
+          {loading ? "Searching..." : "🎬 Suggest lesson videos"}
+        </button>
+
+        {/* Error */}
+        {error && (
+          <p className="mt-4 text-sm text-red-400">
+            {error}
+          </p>
+        )}
 
         {/* Video suggestions */}
         {videos.length > 0 && (
