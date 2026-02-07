@@ -1,10 +1,13 @@
 import { withAuth } from "next-auth/middleware";
 import type { NextRequest } from "next/server";
 
+// ✅ match any public static file: .jpg, .png, .svg, .css, .js, etc.
+const PUBLIC_FILE = /\.(.*)$/;
+
 function isPublicPath(pathname: string) {
   return (
     pathname === "/" ||
-    pathname === "/signin" || // ✅ custom sign-in page
+    pathname === "/signin" || // custom sign-in page
     pathname.startsWith("/backing-tracks") ||
     pathname.startsWith("/finder") ||
     pathname.startsWith("/progressions")
@@ -22,7 +25,7 @@ function isProtectedPath(pathname: string) {
 
 export const middleware = withAuth(
   function middleware(_req: NextRequest) {
-    // no-op; auth logic handled in callbacks.authorized
+    // no-op; auth handled via callbacks.authorized
     return;
   },
   {
@@ -30,7 +33,10 @@ export const middleware = withAuth(
       authorized: ({ token, req }) => {
         const { pathname } = req.nextUrl;
 
-        // ✅ Always allow Next.js internals & assets
+        // ✅ Allow ALL public files (images, fonts, etc.)
+        if (PUBLIC_FILE.test(pathname)) return true;
+
+        // ✅ Allow Next.js internals
         if (
           pathname.startsWith("/_next") ||
           pathname.startsWith("/favicon") ||
@@ -40,10 +46,10 @@ export const middleware = withAuth(
           return true;
         }
 
-        // ✅ Always allow NextAuth routes
+        // ✅ Allow NextAuth routes
         if (pathname.startsWith("/api/auth")) return true;
 
-        // ✅ Public APIs
+        // ✅ Allow public APIs
         if (pathname.startsWith("/api/youtube-search")) return true;
 
         // ✅ Public pages
@@ -54,7 +60,7 @@ export const middleware = withAuth(
           return !!token;
         }
 
-        // 🔒 Default: require login for anything new
+        // 🔒 Default: require login
         return !!token;
       },
     },

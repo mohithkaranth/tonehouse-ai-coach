@@ -3,7 +3,8 @@
 import SignInOutButton from "@/components/auth/SignInOutButton";
 import Image from "next/image";
 import Link from "next/link";
-import { getSession, type Session } from "next-auth/react";
+import { getSession } from "next-auth/react";
+import type { Session } from "next-auth";
 import { useEffect, useState } from "react";
 
 type CardDef = {
