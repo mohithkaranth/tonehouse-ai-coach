@@ -1,10 +1,21 @@
 "use client";
 
-import { signIn, signOut, useSession } from "next-auth/react";
+import type { Session } from "next-auth";
+import { signIn, signOut } from "next-auth/react";
 
-export default function SignInOutButton() {
-  const { data: session, status } = useSession();
+type AuthStatus = "loading" | "authenticated" | "unauthenticated" | "error";
 
+type SignInOutButtonProps = {
+  session: Session | null;
+  status: AuthStatus;
+  authError?: string | null;
+};
+
+export default function SignInOutButton({
+  session,
+  status,
+  authError,
+}: SignInOutButtonProps) {
   if (status === "loading") return null;
 
   if (session?.user) {
@@ -36,8 +47,26 @@ export default function SignInOutButton() {
     );
   }
 
+  if (authError || status === "error") {
+    return (
+      <div className="flex flex-col items-start gap-2 sm:items-end">
+        <button
+          type="button"
+          disabled
+          className="cursor-not-allowed rounded-lg bg-zinc-100 px-3 py-2 text-sm text-zinc-900 opacity-70"
+        >
+          Sign in with Google
+        </button>
+        <span className="text-xs text-zinc-500">
+          {authError ?? "Auth not configured in this environment."}
+        </span>
+      </div>
+    );
+  }
+
   return (
     <button
+      type="button"
       onClick={() => signIn("google")}
       className="rounded-lg bg-zinc-100 px-3 py-2 text-sm text-zinc-900 hover:bg-white"
     >

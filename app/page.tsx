@@ -2,7 +2,8 @@
 
 import SignInOutButton from "@/components/auth/SignInOutButton";
 import Link from "next/link";
-import { useSession } from "next-auth/react";
+import { getSession, type Session } from "next-auth/react";
+import { useEffect, useState } from "react";
 
 type CardDef = {
   title: string;
@@ -13,6 +14,40 @@ type CardDef = {
 
 function cn(...classes: Array<string | false | null | undefined>) {
   return classes.filter(Boolean).join(" ");
+}
+
+type AuthStatus = "loading" | "authenticated" | "unauthenticated" | "error";
+
+function useSafeSession() {
+  const [session, setSession] = useState<Session | null>(null);
+  const [status, setStatus] = useState<AuthStatus>("loading");
+  const [authError, setAuthError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadSession = async () => {
+      try {
+        const data = await getSession();
+        if (!isMounted) return;
+        setSession(data);
+        setStatus(data ? "authenticated" : "unauthenticated");
+      } catch (error) {
+        if (!isMounted) return;
+        setSession(null);
+        setStatus("error");
+        setAuthError("Auth not configured in this environment.");
+      }
+    };
+
+    loadSession();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  return { session, status, authError };
 }
 
 function Card({
@@ -75,7 +110,7 @@ function Card({
 }
 
 export default function HomePage() {
-  const { status } = useSession();
+  const { session, status, authError } = useSafeSession();
   const isLoggedIn = status === "authenticated";
 
   const cards: CardDef[] = [
@@ -120,7 +155,7 @@ export default function HomePage() {
 
   return (
     <main className="min-h-screen bg-zinc-950 text-zinc-50">
-      <div className="mx-auto max-w-5xl px-6 py-16">
+      <div className="mx-auto max-w-5xl px-6 py-12">
         {/* Header */}
         <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
           <div>
@@ -128,37 +163,21 @@ export default function HomePage() {
               Tonehouse Studio Apps
             </h1>
 
-            <p className="mt-4 text-zinc-400">
-              Find your innermost rockstar 🎸
+            <p className="mt-3 text-zinc-400">
+              Practice and learning tools for modern musicians.
             </p>
-
-            <div className="mt-4 flex gap-3 text-lg text-zinc-500">
-              <span title="Practice">🎸</span>
-              <span title="Rhythm">🥁</span>
-              <span title="Harmony">🎹</span>
-              <span title="Ear Training">🎧</span>
-              <span title="Theory">🎼</span>
-            </div>
-
-            <div className="mt-4">
-              {isLoggedIn ? (
-                <span className="rounded-full border border-zinc-800 bg-zinc-900 px-4 py-2 text-sm text-zinc-200">
-                  ✅ Signed in
-                </span>
-              ) : (
-                <span className="rounded-full border border-zinc-800 bg-zinc-900 px-4 py-2 text-sm text-zinc-300">
-                  🔒 Sign in to unlock more
-                </span>
-              )}
-            </div>
           </div>
 
           <div className="mt-2 sm:mt-0">
-            <SignInOutButton />
+            <SignInOutButton
+              session={session}
+              status={status}
+              authError={authError}
+            />
           </div>
         </div>
 
-        <div className="mt-10 mb-10 h-px bg-zinc-800" />
+        <div className="mt-8 mb-8 h-px bg-zinc-800" />
 
         <div className="grid gap-6 md:grid-cols-3">
           {cards.map((c) => (
