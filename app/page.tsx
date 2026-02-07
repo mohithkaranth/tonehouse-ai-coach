@@ -1,6 +1,7 @@
 "use client";
 
 import SignInOutButton from "@/components/auth/SignInOutButton";
+import Image from "next/image";
 import Link from "next/link";
 import { getSession, type Session } from "next-auth/react";
 import { useEffect, useState } from "react";
@@ -10,6 +11,8 @@ type CardDef = {
   description: string;
   href: string;
   requiresAuth?: boolean;
+  imageSrc?: string;
+  imageAlt?: string;
 };
 
 function cn(...classes: Array<string | false | null | undefined>) {
@@ -32,7 +35,7 @@ function useSafeSession() {
         if (!isMounted) return;
         setSession(data);
         setStatus(data ? "authenticated" : "unauthenticated");
-      } catch (error) {
+      } catch {
         if (!isMounted) return;
         setSession(null);
         setStatus("error");
@@ -41,7 +44,6 @@ function useSafeSession() {
     };
 
     loadSession();
-
     return () => {
       isMounted = false;
     };
@@ -55,11 +57,15 @@ function Card({
   description,
   href,
   disabled,
+  imageSrc,
+  imageAlt,
 }: {
   title: string;
   description: string;
   href: string;
   disabled: boolean;
+  imageSrc?: string;
+  imageAlt?: string;
 }) {
   const baseClass =
     "rounded-3xl border border-zinc-800 bg-zinc-900/50 p-6 transition";
@@ -69,41 +75,47 @@ function Card({
 
   const inner = (
     <div className={cn(baseClass, disabled ? disabledClass : enabledClass)}>
+      {imageSrc && (
+        <div className="relative mb-4 h-32 w-full overflow-hidden rounded-2xl border border-zinc-800">
+          <Image
+            src={imageSrc}
+            alt={imageAlt ?? ""}
+            fill
+            sizes="(min-width: 768px) 320px, 100vw"
+            className="object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-zinc-950/70 via-zinc-950/20 to-transparent" />
+        </div>
+      )}
+
       <div className="flex items-start justify-between gap-3">
         <h2 className="text-xl font-medium">{title}</h2>
-
-        {disabled ? (
+        {disabled && (
           <span className="rounded-full border border-zinc-800 bg-zinc-900 px-3 py-1 text-xs text-zinc-300">
             🔒 Locked
           </span>
-        ) : null}
+        )}
       </div>
 
       <p className="mt-2 text-sm text-zinc-400">{description}</p>
 
-      {disabled ? (
+      {disabled && (
         <p className="mt-4 text-xs text-zinc-500">
           Sign in to unlock this feature.
         </p>
-      ) : null}
+      )}
     </div>
   );
 
-  // 🔑 CHANGE STARTS HERE
-  if (disabled) {
-    return (
-      <Link
-        href={`/signin?callbackUrl=${encodeURIComponent(href)}`}
-        className="block"
-      >
-        {inner}
-      </Link>
-    );
-  }
-  // 🔑 CHANGE ENDS HERE
-
   return (
-    <Link href={href} className="block">
+    <Link
+      href={
+        disabled
+          ? `/signin?callbackUrl=${encodeURIComponent(href)}`
+          : href
+      }
+      className="block"
+    >
       {inner}
     </Link>
   );
@@ -120,12 +132,14 @@ export default function HomePage() {
         "Generate lesson plans, warmups, grooves and progress tracking.",
       href: "/coach",
       requiresAuth: true,
+      imageSrc: "/home/coach.jpg",
     },
     {
       title: "🎸 Guitar Lessons",
       description: "Structured beginner guitar lessons with guided practice.",
       href: "/lessons/guitar",
       requiresAuth: true,
+      imageSrc: "/home/guitar-lessons.jpg",
     },
     {
       title: "🎶 Backing Track Finder",
@@ -138,43 +152,56 @@ export default function HomePage() {
       description: "Intervals, chords, and progressions.",
       href: "/ear-training",
       requiresAuth: true,
+      imageSrc: "/home/ear-training.jpg",
     },
     {
       title: "🎹 Chord & Scale Finder",
       description: "Explore chords and scales for guitar, bass, and keyboards.",
       href: "/finder",
       requiresAuth: false,
+      imageSrc: "/home/finder.jpg",
     },
     {
       title: "🎼 Chord Progressions",
       description: "Generate common progressions by key and style.",
       href: "/progressions",
       requiresAuth: false,
+      imageSrc: "/home/progressions.jpg",
     },
   ];
 
   return (
-    <main className="min-h-screen bg-zinc-950 text-zinc-50">
-      <div className="mx-auto max-w-5xl px-6 py-12">
+    <main className="relative min-h-screen bg-zinc-950 text-zinc-50">
+      {/* Hero background */}
+      <div className="absolute inset-0">
+        <Image
+          src="/home/hero.jpg"
+          alt=""
+          fill
+          priority
+          sizes="100vw"
+          className="object-cover"
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-zinc-950/80 via-zinc-950/70 to-zinc-950" />
+      </div>
+
+      <div className="relative mx-auto max-w-5xl px-6 py-12">
         {/* Header */}
         <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="text-4xl font-semibold tracking-tight">
               Tonehouse Studio Apps
             </h1>
-
             <p className="mt-3 text-zinc-400">
               Practice and learning tools for modern musicians.
             </p>
           </div>
 
-          <div className="mt-2 sm:mt-0">
-            <SignInOutButton
-              session={session}
-              status={status}
-              authError={authError}
-            />
-          </div>
+          <SignInOutButton
+            session={session}
+            status={status}
+            authError={authError}
+          />
         </div>
 
         <div className="mt-8 mb-8 h-px bg-zinc-800" />
@@ -187,6 +214,8 @@ export default function HomePage() {
               description={c.description}
               href={c.href}
               disabled={Boolean(c.requiresAuth) && !isLoggedIn}
+              imageSrc={c.imageSrc}
+              imageAlt={c.imageAlt}
             />
           ))}
         </div>
