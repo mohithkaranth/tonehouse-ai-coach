@@ -73,50 +73,43 @@ function Card({
   const disabledClass =
     "opacity-60 cursor-not-allowed select-none hover:bg-zinc-900/50";
 
-  const inner = (
-    <div className={cn(baseClass, disabled ? disabledClass : enabledClass)}>
-      {imageSrc && (
-        <div className="relative mb-4 h-32 w-full overflow-hidden rounded-2xl border border-zinc-800">
-          <Image
-            src={imageSrc}
-            alt={imageAlt ?? ""}
-            fill
-            sizes="(min-width: 768px) 320px, 100vw"
-            className="object-cover"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-zinc-950/70 via-zinc-950/20 to-transparent" />
-        </div>
-      )}
-
-      <div className="flex items-start justify-between gap-3">
-        <h2 className="text-xl font-medium">{title}</h2>
-        {disabled && (
-          <span className="rounded-full border border-zinc-800 bg-zinc-900 px-3 py-1 text-xs text-zinc-300">
-            🔒 Locked
-          </span>
-        )}
-      </div>
-
-      <p className="mt-2 text-sm text-zinc-400">{description}</p>
-
-      {disabled && (
-        <p className="mt-4 text-xs text-zinc-500">
-          Sign in to unlock this feature.
-        </p>
-      )}
-    </div>
-  );
-
   return (
     <Link
-      href={
-        disabled
-          ? `/signin?callbackUrl=${encodeURIComponent(href)}`
-          : href
-      }
+      href={disabled ? `/signin?callbackUrl=${encodeURIComponent(href)}` : href}
       className="block"
     >
-      {inner}
+      <div className={cn(baseClass, disabled ? disabledClass : enabledClass)}>
+        {imageSrc && (
+          <div className="relative mb-4 h-32 w-full overflow-hidden rounded-2xl border border-zinc-800">
+            <Image
+              src={imageSrc}
+              alt={imageAlt ?? ""}
+              fill
+              sizes="(min-width: 768px) 320px, 100vw"
+              unoptimized
+              className="object-cover"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-zinc-950/70 via-zinc-950/20 to-transparent" />
+          </div>
+        )}
+
+        <div className="flex items-start justify-between gap-3">
+          <h2 className="text-xl font-medium">{title}</h2>
+          {disabled && (
+            <span className="rounded-full border border-zinc-800 bg-zinc-900 px-3 py-1 text-xs text-zinc-300">
+              🔒 Locked
+            </span>
+          )}
+        </div>
+
+        <p className="mt-2 text-sm text-zinc-400">{description}</p>
+
+        {disabled && (
+          <p className="mt-4 text-xs text-zinc-500">
+            Sign in to unlock this feature.
+          </p>
+        )}
+      </div>
     </Link>
   );
 }
@@ -133,6 +126,7 @@ export default function HomePage() {
       href: "/coach",
       requiresAuth: true,
       imageSrc: "/home/coach.jpg",
+      imageAlt: "AI practice coach",
     },
     {
       title: "🎸 Guitar Lessons",
@@ -140,12 +134,15 @@ export default function HomePage() {
       href: "/lessons/guitar",
       requiresAuth: true,
       imageSrc: "/home/guitar-lessons.jpg",
+      imageAlt: "Guitar lessons",
     },
     {
       title: "🎶 Backing Track Finder",
       description: "Find YouTube backing tracks by key, style and tempo.",
       href: "/backing-tracks",
       requiresAuth: false,
+      imageSrc: "/home/backing-tracks.jpg",
+      imageAlt: "Backing track finder",
     },
     {
       title: "🎧 Ear Training",
@@ -153,6 +150,7 @@ export default function HomePage() {
       href: "/ear-training",
       requiresAuth: true,
       imageSrc: "/home/ear-training.jpg",
+      imageAlt: "Ear training",
     },
     {
       title: "🎹 Chord & Scale Finder",
@@ -160,6 +158,7 @@ export default function HomePage() {
       href: "/finder",
       requiresAuth: false,
       imageSrc: "/home/finder.jpg",
+      imageAlt: "Chord and scale finder",
     },
     {
       title: "🎼 Chord Progressions",
@@ -167,12 +166,12 @@ export default function HomePage() {
       href: "/progressions",
       requiresAuth: false,
       imageSrc: "/home/progressions.jpg",
+      imageAlt: "Chord progressions",
     },
   ];
 
   return (
     <main className="relative min-h-screen bg-zinc-950 text-zinc-50">
-      {/* Hero background */}
       <div className="absolute inset-0">
         <Image
           src="/home/hero.jpg"
@@ -180,13 +179,13 @@ export default function HomePage() {
           fill
           priority
           sizes="100vw"
+          unoptimized
           className="object-cover"
         />
         <div className="absolute inset-0 bg-gradient-to-b from-zinc-950/80 via-zinc-950/70 to-zinc-950" />
       </div>
 
       <div className="relative mx-auto max-w-5xl px-6 py-12">
-        {/* Header */}
         <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="text-4xl font-semibold tracking-tight">
