@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Providers from "./providers";
+import GlobalHeader from "./GlobalHeader";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -25,9 +26,14 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${geistSans.variable} ${geistMono.variable}`}>
+      <body className={`${geistSans.variable} ${geistMono.variable} min-h-screen`}>
         <Providers>
-          {children}
+          <div className="min-h-screen bg-[url('/home/hero.jpg')] bg-cover bg-center">
+            <div className="min-h-screen bg-zinc-950/80 text-zinc-50">
+              <GlobalHeader />
+              {children}
+            </div>
+          </div>
         </Providers>
       </body>
     </html>
