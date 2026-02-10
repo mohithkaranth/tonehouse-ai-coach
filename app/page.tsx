@@ -1,6 +1,5 @@
 "use client";
 
-import SignInOutButton from "@/components/auth/SignInOutButton";
 import Image from "next/image";
 import Link from "next/link";
 import { getSession } from "next-auth/react";
@@ -116,7 +115,7 @@ function Card({
 }
 
 export default function HomePage() {
-  const { session, status, authError } = useSafeSession();
+  const { status } = useSafeSession();
   const isLoggedIn = status === "authenticated";
 
   const cards: CardDef[] = [
@@ -172,8 +171,9 @@ export default function HomePage() {
   ];
 
   return (
-    <main className="relative min-h-screen bg-zinc-950 text-zinc-50">
-      <div className="absolute inset-0">
+    <main className="relative min-h-screen">
+      {/* Home-only hero background */}
+      <div className="absolute inset-0 -z-10">
         <Image
           src="/home/hero.jpg"
           alt=""
@@ -186,22 +186,14 @@ export default function HomePage() {
         <div className="absolute inset-0 bg-gradient-to-b from-zinc-950/80 via-zinc-950/70 to-zinc-950" />
       </div>
 
-      <div className="relative mx-auto max-w-5xl px-6 py-12">
-        <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h1 className="text-4xl font-semibold tracking-tight">
-              Tonehouse Studio Apps
-            </h1>
-            <p className="mt-3 text-zinc-400">
-              Practice and learning tools for modern musicians.
-            </p>
-          </div>
-
-          <SignInOutButton
-            session={session}
-            status={status}
-            authError={authError}
-          />
+      <div className="mx-auto max-w-5xl px-6 py-12">
+        <div>
+          <h1 className="text-4xl font-semibold tracking-tight">
+            Tonehouse Studio Apps
+          </h1>
+          <p className="mt-3 text-zinc-400">
+            Practice and learning tools for modern musicians.
+          </p>
         </div>
 
         <div className="mt-8 mb-8 h-px bg-zinc-800" />
