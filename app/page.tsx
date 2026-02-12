@@ -137,6 +137,12 @@ export default function HomePage() {
       imageAlt: "Guitar lessons",
     },
     {
+      title: "Start Music from Zero",
+      description: "No theory. No jargon. Just the basics that matter.",
+      href: "/start",
+      requiresAuth: false,
+    },
+    {
       title: "🎶 Backing Track Finder",
       description: "Find YouTube backing tracks by key, style and tempo.",
       href: "/backing-tracks",
