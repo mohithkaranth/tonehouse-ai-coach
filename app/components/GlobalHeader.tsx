@@ -30,12 +30,31 @@ function fmt(iso?: string | null) {
   }).format(new Date(iso));
 }
 
+// ✅ Bug fix: block Google OAuth from in-app browsers (LinkedIn/WhatsApp/Instagram WebView)
+// This prevents users from entering the /signin flow in an embedded browser where Google returns 403 disallowed_useragent.
+function isLikelyInAppBrowser() {
+  if (typeof window === "undefined") return false;
+  const ua = (navigator.userAgent || "").toLowerCase();
+
+  return (
+    ua.includes("linkedinapp") ||
+    ua.includes("instagram") ||
+    ua.includes("fbav") ||
+    ua.includes("fban") ||
+    ua.includes("messenger") ||
+    ua.includes("whatsapp") ||
+    ua.includes("wv") // Android WebView
+  );
+}
+
 export default function GlobalHeader() {
   const { data: session, status } = useSession();
   const [open, setOpen] = useState(false);
 
   const [stats, setStats] = useState<MeStats | null>(null);
   const [loading, setLoading] = useState(false);
+
+  const inAppBrowser = isLikelyInAppBrowser();
 
   useEffect(() => {
     if (!open || !session?.user || stats || loading) return;
@@ -79,9 +98,7 @@ export default function GlobalHeader() {
             >
               <div className="px-3 py-2">
                 <div className="text-xs text-zinc-400">Signed in as</div>
-                <div className="font-medium text-white">
-                  {session.user.name}
-                </div>
+                <div className="font-medium text-white">{session.user.name}</div>
                 {session.user.email && (
                   <div className="mt-0.5 text-xs text-zinc-400">
                     {session.user.email}
@@ -122,6 +139,19 @@ export default function GlobalHeader() {
             </div>
           )}
         </div>
+      ) : inAppBrowser ? (
+        // ✅ Same styling as link (no redesign) — but blocks /signin to avoid Google 403 in WebView.
+        <button
+          type="button"
+          onClick={() =>
+            alert(
+              "Google sign-in may fail inside in-app browsers (LinkedIn/WhatsApp). Open this link in Chrome/Safari and try again."
+            )
+          }
+          className="rounded-full border border-zinc-800 bg-zinc-900/60 px-4 py-2 text-sm text-zinc-200 backdrop-blur hover:bg-zinc-900/80 hover:text-white"
+        >
+          Sign in
+        </button>
       ) : (
         <Link
           href="/signin"
