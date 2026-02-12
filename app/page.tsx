@@ -120,6 +120,15 @@ export default function HomePage() {
 
   const cards: CardDef[] = [
     {
+      title: "🌱 Start Music from Zero",
+      description:
+        "A simple beginner page to learn notes, scales, and your first steps.",
+      href: "/start",
+      requiresAuth: false,
+      imageSrc: "/home/starter.jpg",
+      imageAlt: "Beginner starting music",
+    },
+    {
       title: "🎵 AI Practice Coach",
       description:
         "Generate lesson plans, warmups, grooves and progress tracking.",
