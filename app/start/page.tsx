@@ -128,7 +128,7 @@ export default function StartPage() {
             <img
               src="/piano/cmajorminor.png"
               alt="C Major and C Minor shown on a piano keyboard"
-              className="mx-auto block w-[600px] rounded-lg border border-zinc-800"
+              className="mx-auto block w-[700px] rounded-lg border border-zinc-800"
 
             />
             <p className="mt-2 text-sm text-zinc-400">
