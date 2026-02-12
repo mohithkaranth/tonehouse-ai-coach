@@ -137,10 +137,12 @@ export default function HomePage() {
       imageAlt: "Guitar lessons",
     },
     {
-      title: "Start Music from Zero",
-      description: "No theory. No jargon. Just the basics that matter.",
-      href: "/start",
-      requiresAuth: false,
+       title: "Start Music from Zero",
+  description: "No theory. No jargon. Just the basics that matter.",
+  href: "/start",
+  requiresAuth: false,
+  imageSrc: "/home/starter.jpg",
+  imageAlt: "Start music from zero",
     },
     {
       title: "🎶 Backing Track Finder",
