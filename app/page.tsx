@@ -59,6 +59,7 @@ function Card({
   disabled,
   imageSrc,
   imageAlt,
+  highlighted = false,
 }: {
   title: string;
   description: string;
@@ -66,9 +67,14 @@ function Card({
   disabled: boolean;
   imageSrc?: string;
   imageAlt?: string;
+  highlighted?: boolean;
 }) {
-  const baseClass =
-    "rounded-3xl border border-zinc-800 bg-zinc-900/50 p-6 transition";
+  const baseClass = cn(
+    "rounded-3xl border p-6 transition",
+    highlighted
+      ? "border-zinc-600 bg-zinc-900/60"
+      : "border-zinc-800 bg-zinc-900/50",
+  );
   const enabledClass = "hover:bg-zinc-900";
   const disabledClass =
     "opacity-60 cursor-not-allowed select-none hover:bg-zinc-900/50";
@@ -120,6 +126,14 @@ export default function HomePage() {
 
   const cards: CardDef[] = [
     {
+      title: "Start Music from Zero",
+      description: "No theory. No jargon. Just the basics that matter.",
+      href: "/start",
+      requiresAuth: false,
+      imageSrc: "/home/starter.jpg",
+      imageAlt: "Start music from zero",
+    },
+    {
       title: "🎵 AI Practice Coach",
       description:
         "Generate lesson plans, warmups, grooves and progress tracking.",
@@ -135,14 +149,6 @@ export default function HomePage() {
       requiresAuth: true,
       imageSrc: "/home/guitar-lessons.jpg",
       imageAlt: "Guitar lessons",
-    },
-    {
-       title: "Start Music from Zero",
-  description: "No theory. No jargon. Just the basics that matter.",
-  href: "/start",
-  requiresAuth: false,
-  imageSrc: "/home/starter.jpg",
-  imageAlt: "Start music from zero",
     },
     {
       title: "🎶 Backing Track Finder",
@@ -216,6 +222,7 @@ export default function HomePage() {
               disabled={Boolean(c.requiresAuth) && !isLoggedIn}
               imageSrc={c.imageSrc}
               imageAlt={c.imageAlt}
+              highlighted={c.href === "/coach"}
             />
           ))}
         </div>
