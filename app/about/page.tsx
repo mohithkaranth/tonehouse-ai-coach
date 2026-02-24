@@ -22,14 +22,13 @@ export default function AboutPage() {
 
       <h1 className="text-3xl font-semibold tracking-tight">About</h1>
 
-      <div className="mt-6">
+      <div className="relative mt-6 h-56 w-full overflow-hidden rounded-xl border border-zinc-800">
         <Image
-          src="/about/tonehouse-studio.jpg"
+          src="/about/tonehouse-studio.jpeg"
           alt="Tonehouse Studios in Singapore"
-          width={1400}
-          height={788}
-          className="w-full rounded-2xl border border-zinc-800 object-cover"
-          priority
+          fill
+          className="object-cover"
+          priority={true}
         />
       </div>
 
