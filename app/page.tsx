@@ -72,7 +72,7 @@ function Card({
   const baseClass = cn(
     "rounded-3xl border p-6 transition",
     highlighted
-      ? "border-zinc-600 bg-zinc-900/60"
+      ? "border-zinc-600 bg-zinc-900/50 ring-1 ring-zinc-500/50"
       : "border-zinc-800 bg-zinc-900/50",
   );
   const enabledClass = "hover:bg-zinc-900";
@@ -101,6 +101,11 @@ function Card({
 
         <div className="flex items-start justify-between gap-3">
           <h2 className="text-xl font-medium">{title}</h2>
+          {highlighted && (
+            <span className="rounded-full border border-zinc-700 bg-zinc-800/70 px-3 py-1 text-xs text-zinc-200">
+              Featured
+            </span>
+          )}
           {disabled && (
             <span className="rounded-full border border-zinc-800 bg-zinc-900 px-3 py-1 text-xs text-zinc-300">
               🔒 Locked
