@@ -394,7 +394,7 @@ export default function CoachForm({
               rel="noopener noreferrer"
               className="rounded-xl border border-white/20 bg-zinc-950/60 px-4 py-2 text-sm text-zinc-100 hover:bg-zinc-900"
             >
-              Open Ultimate Guitar ↗
+              Search for tabs ↗
             </a>
 
             <a
