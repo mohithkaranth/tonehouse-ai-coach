@@ -9,6 +9,7 @@ function isPublicPath(pathname: string) {
     pathname === "/" ||
     pathname === "/signin" || // custom sign-in page
     pathname === "/start" ||  // ✅ make Start Music from Zero public
+    pathname === "/about" ||
     pathname.startsWith("/backing-tracks") ||
     pathname.startsWith("/finder") ||
     pathname.startsWith("/progressions")
