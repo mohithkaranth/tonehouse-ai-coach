@@ -16,8 +16,13 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Tonehouse AI",
-  description: "Powered by OpenAI",
+  metadataBase: new URL("https://aicoach.tonehouse.sg"),
+  title: {
+    default: "Tonehouse AI Coach",
+    template: "%s | Tonehouse AI Coach",
+  },
+  description:
+    "Tonehouse AI Coach helps musicians build better practice habits with clear, structured systems.",
 };
 
 export default function RootLayout({
