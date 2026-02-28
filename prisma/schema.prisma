@@ -17,3 +17,9 @@ model User {
   lastLoginAt DateTime?
   loginCount  Int      @default(0)
 }
+
+model BetaUser {
+  id          String   @id @default(uuid())
+  googleSubId String   @unique
+  createdAt   DateTime @default(now())
+}
