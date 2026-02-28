@@ -1,10 +1,7 @@
-"use client";
-
 import Image from "next/image";
 import Link from "next/link";
-import { getSession } from "next-auth/react";
-import type { Session } from "next-auth";
-import { useEffect, useState } from "react";
+import SubscriptionComingSoon from "@/components/subscription/SubscriptionComingSoon";
+import { getUserAccessLevel } from "@/lib/getUserAccessLevel";
 
 type CardDef = {
   title: string;
@@ -17,39 +14,6 @@ type CardDef = {
 
 function cn(...classes: Array<string | false | null | undefined>) {
   return classes.filter(Boolean).join(" ");
-}
-
-type AuthStatus = "loading" | "authenticated" | "unauthenticated" | "error";
-
-function useSafeSession() {
-  const [session, setSession] = useState<Session | null>(null);
-  const [status, setStatus] = useState<AuthStatus>("loading");
-  const [authError, setAuthError] = useState<string | null>(null);
-
-  useEffect(() => {
-    let isMounted = true;
-
-    const loadSession = async () => {
-      try {
-        const data = await getSession();
-        if (!isMounted) return;
-        setSession(data);
-        setStatus(data ? "authenticated" : "unauthenticated");
-      } catch {
-        if (!isMounted) return;
-        setSession(null);
-        setStatus("error");
-        setAuthError("Auth not configured in this environment.");
-      }
-    };
-
-    loadSession();
-    return () => {
-      isMounted = false;
-    };
-  }, []);
-
-  return { session, status, authError };
 }
 
 function Card({
@@ -125,9 +89,8 @@ function Card({
   );
 }
 
-export default function HomePage() {
-  const { status } = useSafeSession();
-  const isLoggedIn = status === "authenticated";
+export default async function HomePage() {
+  const accessLevel = await getUserAccessLevel();
 
   const cards: CardDef[] = [
     {
@@ -217,6 +180,8 @@ export default function HomePage() {
 
         <div className="mt-8 mb-8 h-px bg-zinc-800" />
 
+        {accessLevel === "restricted" && <SubscriptionComingSoon />}
+
         <div className="grid gap-6 md:grid-cols-3">
           {cards.map((c) => (
             <Card
@@ -224,7 +189,7 @@ export default function HomePage() {
               title={c.title}
               description={c.description}
               href={c.href}
-              disabled={Boolean(c.requiresAuth) && !isLoggedIn}
+              disabled={Boolean(c.requiresAuth) && accessLevel !== "beta"}
               imageSrc={c.imageSrc}
               imageAlt={c.imageAlt}
               highlighted={c.href === "/coach"}
