@@ -19,7 +19,7 @@ model User {
 }
 
 model BetaUser {
-  id          String   @id @default(uuid())
-  googleSubId String   @unique
-  createdAt   DateTime @default(now())
+  id        String   @id @default(uuid())
+  email     String   @unique
+  createdAt DateTime @default(now())
 }
