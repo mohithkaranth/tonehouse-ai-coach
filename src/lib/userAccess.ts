@@ -11,17 +11,14 @@ export async function getUserAccessLevel(): Promise<UserAccessLevel> {
     return "visitor";
   }
 
-  const googleSubId =
-    (session as { sub?: string }).sub ??
-    (session.user as { sub?: string; id?: string } | undefined)?.sub ??
-    (session.user as { sub?: string; id?: string } | undefined)?.id;
+  const email = session.user?.email;
 
-  if (!googleSubId) {
+  if (!email) {
     return "restricted";
   }
 
   const betaUser = await prisma.betaUser.findUnique({
-    where: { googleSubId },
+    where: { email },
     select: { id: true },
   });
 
