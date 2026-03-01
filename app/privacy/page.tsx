@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 
 export const metadata: Metadata = {
   title: "Privacy Policy – Tonehouse AI Coach",
@@ -9,6 +10,10 @@ export default function PrivacyPage() {
   return (
     <section className="mx-auto max-w-3xl px-6 py-16">
       <div className="rounded-3xl border border-zinc-800 bg-zinc-900/50 p-8">
+        <Link href="/" className="text-sm text-zinc-400 underline underline-offset-4 hover:text-zinc-100">
+          ← Back to Home
+        </Link>
+
         <h1 className="text-3xl font-semibold tracking-tight">Privacy Policy – Tonehouse AI Coach</h1>
 
         <div className="mt-6 space-y-6 text-zinc-300">
