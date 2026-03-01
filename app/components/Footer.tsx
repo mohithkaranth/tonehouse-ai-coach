@@ -14,6 +14,9 @@ export default function Footer() {
           >
             Contact
           </a>
+          <Link href="/privacy" className="underline underline-offset-4 hover:text-zinc-300">
+            Privacy Policy
+          </Link>
         </div>
 
         © {new Date().getFullYear()} Tonehouse Studios.
