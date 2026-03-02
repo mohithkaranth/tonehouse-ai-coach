@@ -16,7 +16,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://aicoach.tonehouse.sg"),
+  metadataBase: new URL("https://coach.tonehouse.sg"),
   title: {
     default: "Tonehouse AI Coach",
     template: "%s | Tonehouse AI Coach",
