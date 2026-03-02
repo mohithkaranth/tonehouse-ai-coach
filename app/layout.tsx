@@ -23,6 +23,9 @@ export const metadata: Metadata = {
   },
   description:
     "Tonehouse AI Coach helps musicians build better practice habits with clear, structured systems.",
+  verification: {
+    google: "ncC_F8SNFam05n79s1asCLVSZDWEQdHx9x9ZcDotQq0",
+  },
 };
 
 export default function RootLayout({
