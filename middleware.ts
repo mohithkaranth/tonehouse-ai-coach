@@ -7,8 +7,8 @@ const PUBLIC_FILE = /\.(.*)$/;
 function isPublicPath(pathname: string) {
   return (
     pathname === "/" ||
-    pathname === "/signin" || // custom sign-in page
-    pathname === "/start" ||  // ✅ make Start Music from Zero public
+    pathname === "/signin" ||
+    pathname === "/start" ||
     pathname === "/about" ||
     pathname === "/privacy" ||
     pathname.startsWith("/backing-tracks") ||
@@ -28,7 +28,6 @@ function isProtectedPath(pathname: string) {
 
 export const middleware = withAuth(
   function middleware(_req: NextRequest) {
-    // no-op; auth handled via callbacks.authorized
     return;
   },
   {
@@ -36,7 +35,7 @@ export const middleware = withAuth(
       authorized: ({ token, req }) => {
         const { pathname } = req.nextUrl;
 
-        // ✅ Allow ALL public files (images, fonts, etc.)
+        // ✅ Allow ALL public files
         if (PUBLIC_FILE.test(pathname)) return true;
 
         // ✅ Allow Next.js internals
@@ -51,6 +50,9 @@ export const middleware = withAuth(
 
         // ✅ Allow NextAuth routes
         if (pathname.startsWith("/api/auth")) return true;
+
+        // ✅ ✅ STRIPE WEBHOOK BYPASS (FIX)
+        if (pathname.startsWith("/api/stripe/webhook")) return true;
 
         // ✅ Allow public APIs
         if (pathname.startsWith("/api/youtube-search")) return true;
