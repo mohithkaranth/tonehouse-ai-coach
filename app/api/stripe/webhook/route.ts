@@ -8,10 +8,12 @@ function toDate(timestamp?: number | null) {
 }
 
 async function upsertSubscription(subscription: Stripe.Subscription) {
+  const sub = subscription as any; // ✅ typing fix for Stripe v18
+
   const customerId =
-    typeof subscription.customer === "string"
-      ? subscription.customer
-      : subscription.customer.id;
+    typeof sub.customer === "string"
+      ? sub.customer
+      : sub.customer.id;
 
   const user = await prisma.user.findUnique({
     where: { stripeCustomerId: customerId },
@@ -26,18 +28,18 @@ async function upsertSubscription(subscription: Stripe.Subscription) {
     where: { userId: user.id },
     create: {
       userId: user.id,
-      stripeSubscriptionId: subscription.id,
-      status: subscription.status,
-      currentPeriodEnd: toDate(subscription.current_period_end),
-      trialEnd: toDate(subscription.trial_end),
-      cancelAtPeriodEnd: subscription.cancel_at_period_end,
+      stripeSubscriptionId: sub.id,
+      status: sub.status,
+      currentPeriodEnd: toDate(sub.current_period_end),
+      trialEnd: toDate(sub.trial_end),
+      cancelAtPeriodEnd: sub.cancel_at_period_end,
     },
     update: {
-      stripeSubscriptionId: subscription.id,
-      status: subscription.status,
-      currentPeriodEnd: toDate(subscription.current_period_end),
-      trialEnd: toDate(subscription.trial_end),
-      cancelAtPeriodEnd: subscription.cancel_at_period_end,
+      stripeSubscriptionId: sub.id,
+      status: sub.status,
+      currentPeriodEnd: toDate(sub.current_period_end),
+      trialEnd: toDate(sub.trial_end),
+      cancelAtPeriodEnd: sub.cancel_at_period_end,
     },
   });
 }
@@ -47,7 +49,10 @@ export async function POST(request: Request) {
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
   if (!signature || !webhookSecret) {
-    return NextResponse.json({ error: "Webhook configuration error" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Webhook configuration error" },
+      { status: 400 }
+    );
   }
 
   const rawBody = await request.text();
@@ -55,9 +60,16 @@ export async function POST(request: Request) {
   let event: Stripe.Event;
 
   try {
-    event = stripe.webhooks.constructEvent(rawBody, signature, webhookSecret);
+    event = stripe.webhooks.constructEvent(
+      rawBody,
+      signature,
+      webhookSecret
+    );
   } catch {
-    return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Invalid signature" },
+      { status: 400 }
+    );
   }
 
   switch (event.type) {
