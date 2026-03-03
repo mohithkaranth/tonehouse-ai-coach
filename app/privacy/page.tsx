@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "Privacy Policy – Tonehouse AI Coach",
-  description: "Privacy policy for Tonehouse AI Coach operated by Tonehouse Studios, Singapore.",
+  title: "Privacy Policy – Tonehouse Coach",
+  description: "Privacy policy for Tonehouse Coach operated by Tonehouse Studios, Singapore.",
 };
 
 export default function PrivacyPage() {
@@ -14,13 +14,13 @@ export default function PrivacyPage() {
           ← Back to Home
         </Link>
 
-        <h1 className="text-3xl font-semibold tracking-tight">Privacy Policy – Tonehouse AI Coach</h1>
+        <h1 className="text-3xl font-semibold tracking-tight">Privacy Policy – Tonehouse Coach</h1>
 
         <div className="mt-6 space-y-6 text-zinc-300">
           <section>
             <h2 className="text-xl font-semibold tracking-tight text-zinc-100">Introduction</h2>
             <p className="mt-2">
-              Tonehouse AI Coach is an AI-assisted music coaching platform operated by Tonehouse Studios,
+              Tonehouse Coach is a music coaching platform operated by Tonehouse Studios,
               Singapore.
             </p>
           </section>
@@ -46,7 +46,7 @@ export default function PrivacyPage() {
           <section>
             <h2 className="text-xl font-semibold tracking-tight text-zinc-100">Google User Data</h2>
             <p className="mt-2">
-              Tonehouse AI Coach complies with Google API Services User Data Policy and Limited Use
+              Tonehouse Coach complies with Google API Services User Data Policy and Limited Use
               requirements.
             </p>
           </section>

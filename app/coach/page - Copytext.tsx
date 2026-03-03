@@ -29,7 +29,7 @@ export default function CoachPage() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-5xl font-semibold tracking-tight text-white">
-              Tonehouse AI Coach
+              Tonehouse Coach
             </h1>
 
             <p className="mt-4 text-lg text-zinc-400">
