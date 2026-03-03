@@ -18,11 +18,11 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   metadataBase: new URL("https://coach.tonehouse.sg"),
   title: {
-    default: "Tonehouse AI Coach",
-    template: "%s | Tonehouse AI Coach",
+    default: "Tonehouse Coach",
+    template: "%s | Tonehouse Coach",
   },
   description:
-    "Tonehouse AI Coach helps musicians build better practice habits with clear, structured systems.",
+    "Tonehouse Coach helps musicians build better practice habits with clear, structured systems.",
   verification: {
     google: "ncC_F8SNFam05n79s1asCLVSZDWEQdHx9x9ZcDotQq0",
   },

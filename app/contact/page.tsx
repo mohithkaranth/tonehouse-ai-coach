@@ -2,10 +2,10 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Contact",
-  description: "Contact Tonehouse AI Coach via email in Singapore.",
+  description: "Contact Tonehouse Coach via email in Singapore.",
   openGraph: {
-    title: "Contact Tonehouse AI Coach",
-    description: "Reach Tonehouse AI Coach at mail@tonehouse.sg.",
+    title: "Contact Tonehouse Coach",
+    description: "Reach Tonehouse Coach at mail@tonehouse.sg.",
     url: "/contact",
     type: "website",
   },

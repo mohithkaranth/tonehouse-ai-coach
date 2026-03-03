@@ -193,7 +193,7 @@ export default function StartPage() {
               href="/coach"
               className="rounded-2xl border border-zinc-800 bg-zinc-900/50 p-6 text-lg font-medium transition hover:bg-zinc-900"
             >
-              AI Practice Coach
+              Practice Coach
             </Link>
           </div>
         </section>

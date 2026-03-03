@@ -17,7 +17,7 @@ export default function SignInClient() {
           </h1>
 
           <p className="mt-3 text-zinc-400">
-            Unlock AI Coach, Guitar Lessons, and more.
+            Unlock Practice Coach, Guitar Lessons, and more.
           </p>
 
           <div className="mt-8 space-y-4">

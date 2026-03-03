@@ -105,13 +105,13 @@ export default async function HomePage() {
       imageAlt: "Start music from zero",
     },
     {
-      title: "🎵 AI Practice Coach",
+      title: "🎵 Practice Coach",
       description:
         "Generate lesson plans, warmups, grooves and progress tracking.",
       href: "/coach",
       requiresAuth: true,
       imageSrc: "/home/coach.jpg",
-      imageAlt: "AI practice coach",
+      imageAlt: "Practice coach",
     },
     {
       title: "🎸 Guitar Lessons",

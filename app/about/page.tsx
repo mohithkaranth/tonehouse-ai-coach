@@ -3,9 +3,9 @@ import Link from "next/link";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "About | Tonehouse AI Coach",
+  title: "About | Tonehouse Coach",
   description:
-    "Learn about Tonehouse Studios in Singapore and the Tonehouse AI Coach app built to help musicians practice better.",
+    "Learn about Tonehouse Studios in Singapore and the Tonehouse Coach app built to help musicians practice better.",
 };
 
 export default function AboutPage() {
@@ -103,12 +103,12 @@ export default function AboutPage() {
 
         <article className="rounded-3xl border border-zinc-800 bg-zinc-900/50 p-6 sm:p-8">
           <h2 className="text-2xl font-semibold tracking-tight text-white">
-            About Tonehouse AI Coach
+            About Tonehouse Coach
           </h2>
 
           <div className="mt-4 space-y-4 text-zinc-300">
             <p>
-              Tonehouse AI Coach extends the same philosophy into the digital
+              Tonehouse Coach extends the same philosophy into the digital
               world.
             </p>
 
@@ -119,7 +119,7 @@ export default function AboutPage() {
             </p>
 
             <p>
-              Instead of random playing, the AI Coach generates structured
+              Instead of random playing, the Practice Coach builds structured
               practice plans, guided exercises, and learning pathways tailored to
               the musician&apos;s goals.
             </p>
@@ -130,7 +130,7 @@ export default function AboutPage() {
             </p>
 
             <p>
-              Tonehouse AI Coach is not about shortcuts — it is about practicing
+              Tonehouse Coach is not about shortcuts — it is about practicing
               smarter.
             </p>
 
