@@ -34,10 +34,10 @@ export const middleware = withAuth(
       authorized: ({ token, req }) => {
         const { pathname } = req.nextUrl;
 
-        // ✅ static files
+        // ✅ Allow static assets
         if (PUBLIC_FILE.test(pathname)) return true;
 
-        // ✅ Next internals
+        // ✅ Allow Next.js internals
         if (
           pathname.startsWith("/_next") ||
           pathname.startsWith("/favicon") ||
@@ -47,10 +47,11 @@ export const middleware = withAuth(
           return true;
         }
 
-        // ✅ NextAuth
+        // ✅ Allow NextAuth routes
         if (pathname.startsWith("/api/auth")) return true;
 
-        // ✅ Stripe webhook (CRITICAL)
+        // ✅ ✅ CRITICAL — allow Stripe completely
+        // prevents webhook POST redirect (307)
         if (pathname.startsWith("/api/stripe")) return true;
 
         // ✅ Public APIs
@@ -59,11 +60,12 @@ export const middleware = withAuth(
         // ✅ Public pages
         if (isPublicPath(pathname)) return true;
 
-        // 🔒 Protected
+        // 🔒 Protected app areas
         if (isProtectedPath(pathname)) {
           return !!token;
         }
 
+        // 🔒 Default require login
         return !!token;
       },
     },
