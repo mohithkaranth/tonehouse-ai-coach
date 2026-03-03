@@ -1,7 +1,9 @@
 import Image from "next/image";
 import Link from "next/link";
+import { getServerSession } from "next-auth";
 import SubscriptionComingSoon from "@/components/subscription/SubscriptionComingSoon";
-import { getUserAccessLevel } from "@/lib/getUserAccessLevel";
+import { authOptions } from "@/lib/auth";
+import { hasFullAccess } from "@/lib/hasFullAccess";
 
 type CardDef = {
   title: string;
@@ -93,7 +95,11 @@ function Card({
 }
 
 export default async function HomePage() {
-  const accessLevel = await getUserAccessLevel();
+  const session = await getServerSession(authOptions);
+  const hasAccess = await hasFullAccess({
+    email: session?.user?.email ?? undefined,
+    userId: session?.user?.id ?? undefined,
+  });
 
   const cards: CardDef[] = [
     {
@@ -182,7 +188,7 @@ export default async function HomePage() {
 
         <div className="mt-8 mb-8 h-px bg-zinc-800" />
 
-        {accessLevel === "restricted" && <SubscriptionComingSoon />}
+        {!hasAccess && <SubscriptionComingSoon />}
 
         <div className="grid gap-6 md:grid-cols-3">
           {cards.map((c) => (
@@ -190,8 +196,8 @@ export default async function HomePage() {
               key={c.href}
               title={c.title}
               description={c.description}
-              href={c.href}
-              disabled={Boolean(c.requiresAuth) && accessLevel !== "full"}
+              href={Boolean(c.requiresAuth) && !hasAccess ? "/billing" : c.href}
+              disabled={Boolean(c.requiresAuth) && !hasAccess}
               imageSrc={c.imageSrc}
               imageAlt={c.imageAlt}
               highlighted={c.href === "/coach"}
