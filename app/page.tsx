@@ -191,7 +191,7 @@ export default async function HomePage() {
               title={c.title}
               description={c.description}
               href={c.href}
-              disabled={Boolean(c.requiresAuth) && accessLevel !== "beta"}
+              disabled={Boolean(c.requiresAuth) && accessLevel !== "full"}
               imageSrc={c.imageSrc}
               imageAlt={c.imageAlt}
               highlighted={c.href === "/coach"}

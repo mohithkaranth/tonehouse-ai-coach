@@ -1,8 +1,8 @@
 import { getServerSession } from "next-auth";
-import { prisma } from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
+import { hasFullAccess } from "@/lib/hasFullAccess";
 
-export type UserAccessLevel = "visitor" | "beta" | "restricted";
+export type UserAccessLevel = "visitor" | "full" | "restricted";
 
 export async function getUserAccessLevel(): Promise<UserAccessLevel> {
   const session = await getServerSession(authOptions);
@@ -13,16 +13,11 @@ export async function getUserAccessLevel(): Promise<UserAccessLevel> {
 
   const email = session.user.email;
 
-  console.log("LOGIN EMAIL =", email);
-
   if (!email) {
     return "restricted";
   }
 
-  const betaUser = await prisma.betaUser.findUnique({
-    where: { email },
-    select: { id: true },
-  });
+  const fullAccess = await hasFullAccess({ email });
 
-  return betaUser ? "beta" : "restricted";
+  return fullAccess ? "full" : "restricted";
 }

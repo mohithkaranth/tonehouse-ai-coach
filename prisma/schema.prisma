@@ -7,19 +7,36 @@ datasource db {
 }
 
 model User {
-  id          String   @id @default(cuid())
-  email       String   @unique
-  name        String?
-  image       String?
-  createdAt   DateTime @default(now())
+  id               String         @id @default(cuid())
+  email            String         @unique
+  name             String?
+  image            String?
+  createdAt        DateTime       @default(now())
+  stripeCustomerId String?        @unique
 
   // login tracking
   lastLoginAt DateTime?
   loginCount  Int      @default(0)
+
+  subscription Subscription?
 }
 
 model BetaUser {
   id        String   @id @default(uuid())
   email     String   @unique
   createdAt DateTime @default(now())
+}
+
+model Subscription {
+  id                   String   @id @default(cuid())
+  userId               String   @unique
+  stripeSubscriptionId String   @unique
+  status               String
+  currentPeriodEnd     DateTime?
+  trialEnd             DateTime?
+  cancelAtPeriodEnd    Boolean  @default(false)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id])
 }
