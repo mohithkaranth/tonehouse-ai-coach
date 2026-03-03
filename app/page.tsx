@@ -98,7 +98,6 @@ export default async function HomePage() {
   const session = await getServerSession(authOptions);
   const hasAccess = await hasFullAccess({
     email: session?.user?.email ?? undefined,
-    userId: session?.user?.id ?? undefined,
   });
 
   const cards: CardDef[] = [
