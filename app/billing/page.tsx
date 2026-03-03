@@ -11,7 +11,7 @@ export default async function BillingPage() {
   const email = session?.user?.email;
 
   if (!email) {
-    redirect("/signin?callbackUrl=/billing");
+    redirect("/api/auth/signin?callbackUrl=/billing");
   }
 
   const betaUser = await prisma.betaUser.findUnique({
