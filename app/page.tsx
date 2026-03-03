@@ -1,7 +1,9 @@
 import Image from "next/image";
 import Link from "next/link";
+import { getServerSession } from "next-auth";
 import SubscriptionComingSoon from "@/components/subscription/SubscriptionComingSoon";
-import { getUserAccessLevel } from "@/lib/getUserAccessLevel";
+import { authOptions } from "@/lib/auth";
+import { hasFullAccess } from "@/lib/hasFullAccess";
 
 type CardDef = {
   title: string;
@@ -44,11 +46,10 @@ function Card({
   const disabledClass =
     "opacity-60 cursor-not-allowed select-none hover:bg-zinc-900/50";
 
+  const destination = href;
+
   return (
-    <Link
-      href={disabled ? `/signin?callbackUrl=${encodeURIComponent(href)}` : href}
-      className="block"
-    >
+    <Link href={destination} prefetch={false} className="block">
       <div className={cn(baseClass, disabled ? disabledClass : enabledClass)}>
         {imageSrc && (
           <div className="relative mb-4 h-32 w-full overflow-hidden rounded-2xl border border-zinc-800">
@@ -93,7 +94,10 @@ function Card({
 }
 
 export default async function HomePage() {
-  const accessLevel = await getUserAccessLevel();
+  const session = await getServerSession(authOptions);
+  const hasAccess = await hasFullAccess({
+    email: session?.user?.email ?? undefined,
+  });
 
   const cards: CardDef[] = [
     {
@@ -182,21 +186,26 @@ export default async function HomePage() {
 
         <div className="mt-8 mb-8 h-px bg-zinc-800" />
 
-        {accessLevel === "restricted" && <SubscriptionComingSoon />}
+        {!hasAccess && <SubscriptionComingSoon />}
 
         <div className="grid gap-6 md:grid-cols-3">
-          {cards.map((c) => (
-            <Card
-              key={c.href}
-              title={c.title}
-              description={c.description}
-              href={c.href}
-              disabled={Boolean(c.requiresAuth) && accessLevel !== "full"}
-              imageSrc={c.imageSrc}
-              imageAlt={c.imageAlt}
-              highlighted={c.href === "/coach"}
-            />
-          ))}
+          {cards.map((c) => {
+            const destination =
+              Boolean(c.requiresAuth) && !hasAccess ? "/billing" : c.href;
+
+            return (
+              <Card
+                key={c.href}
+                title={c.title}
+                description={c.description}
+                href={destination}
+                disabled={Boolean(c.requiresAuth) && !hasAccess}
+                imageSrc={c.imageSrc}
+                imageAlt={c.imageAlt}
+                highlighted={c.href === "/coach"}
+              />
+            );
+          })}
         </div>
       </div>
     </main>
