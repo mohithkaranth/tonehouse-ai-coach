@@ -32,8 +32,10 @@ export default function AboutPage() {
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
           <div className="absolute inset-x-0 bottom-0 p-6 md:p-8">
-            <h1 className="text-3xl font-semibold tracking-tight text-white">About</h1>
-            <p className="mt-2 max-w-2xl text-sm text-zinc-200 md:text-base">
+            <h1 className="text-4xl font-semibold tracking-tight text-white md:text-5xl">
+              About
+            </h1>
+            <p className="mt-3 max-w-2xl text-base leading-relaxed text-zinc-200">
               A physical studio in Singapore — and an app built to help musicians
               practice better.
             </p>
@@ -41,13 +43,13 @@ export default function AboutPage() {
         </div>
       </div>
 
-      <div className="mx-auto mt-10 max-w-3xl space-y-6">
-        <article className="rounded-3xl border border-zinc-800 bg-zinc-900/50 p-6 sm:p-8">
-          <h2 className="text-2xl font-semibold tracking-tight text-white">
+      <div className="mx-auto mt-10 max-w-3xl space-y-10">
+        <article className="rounded-2xl border border-zinc-800 bg-zinc-900/50 p-6 sm:p-8">
+          <h2 className="text-2xl font-medium tracking-tight text-white">
             About Tonehouse Studios
           </h2>
 
-          <div className="mt-4 space-y-4 text-zinc-300">
+          <div className="mt-5 max-w-2xl space-y-6 text-base leading-relaxed text-zinc-300">
             <p>
               From boardrooms to bandstands — turning musical passion into studio
               excellence.
@@ -77,8 +79,8 @@ export default function AboutPage() {
               creators, and performers in Singapore.
             </p>
 
-            <div className="rounded-2xl border border-zinc-800 bg-zinc-950/40 p-4 text-sm text-zinc-300">
-              <p>Located in: Parklane Shopping Mall</p>
+            <div className="rounded-2xl border border-zinc-800 bg-zinc-950/40 p-5 text-xs leading-relaxed text-zinc-400 sm:text-sm">
+              <p className="text-zinc-300">Located in: Parklane Shopping Mall</p>
               <p>35 Selegie Road, #03-09</p>
               <p>Singapore 188307</p>
             </div>
@@ -101,15 +103,16 @@ export default function AboutPage() {
           </div>
         </article>
 
-        <article className="rounded-3xl border border-zinc-800 bg-zinc-900/50 p-6 sm:p-8">
-          <h2 className="text-2xl font-semibold tracking-tight text-white">
+        <div className="border-t border-zinc-800" />
+
+        <article className="rounded-2xl border border-zinc-800 bg-zinc-900/50 p-6 sm:p-8">
+          <h2 className="text-2xl font-medium tracking-tight text-white">
             About Tonehouse Coach
           </h2>
 
-          <div className="mt-4 space-y-4 text-zinc-300">
+          <div className="mt-5 max-w-2xl space-y-6 text-base leading-relaxed text-zinc-300">
             <p>
-              Tonehouse Coach extends the same philosophy into the digital
-              world.
+              Tonehouse Coach extends the same philosophy into the digital world.
             </p>
 
             <p>
