@@ -47,10 +47,7 @@ function Card({
     "opacity-60 cursor-not-allowed select-none hover:bg-zinc-900/50";
 
   return (
-    <Link
-      href={disabled ? `/signin?callbackUrl=${encodeURIComponent(href)}` : href}
-      className="block"
-    >
+    <Link href={href} prefetch={false} className="block">
       <div className={cn(baseClass, disabled ? disabledClass : enabledClass)}>
         {imageSrc && (
           <div className="relative mb-4 h-32 w-full overflow-hidden rounded-2xl border border-zinc-800">
@@ -86,7 +83,7 @@ function Card({
 
         {disabled && (
           <p className="mt-4 text-xs text-zinc-500">
-            Sign in to unlock this feature.
+            Subscribe to unlock this feature.
           </p>
         )}
       </div>
@@ -96,6 +93,7 @@ function Card({
 
 export default async function HomePage() {
   const session = await getServerSession(authOptions);
+
   const hasAccess = await hasFullAccess({
     email: session?.user?.email ?? undefined,
   });
@@ -105,9 +103,6 @@ export default async function HomePage() {
       title: "Start Music from Zero",
       description: "No theory. No jargon. Just the basics that matter.",
       href: "/start",
-      requiresAuth: false,
-      imageSrc: "/home/starter.jpg",
-      imageAlt: "Start music from zero",
     },
     {
       title: "🎵 Practice Coach",
@@ -116,7 +111,6 @@ export default async function HomePage() {
       href: "/coach",
       requiresAuth: true,
       imageSrc: "/home/coach.jpg",
-      imageAlt: "Practice coach",
     },
     {
       title: "🎸 Guitar Lessons",
@@ -124,15 +118,12 @@ export default async function HomePage() {
       href: "/lessons/guitar",
       requiresAuth: true,
       imageSrc: "/home/guitar-lessons.jpg",
-      imageAlt: "Guitar lessons",
     },
     {
       title: "🎶 Backing Track Finder",
       description: "Find YouTube backing tracks by key, style and tempo.",
       href: "/backing-tracks",
-      requiresAuth: false,
       imageSrc: "/home/backing-tracks.jpg",
-      imageAlt: "Backing track finder",
     },
     {
       title: "🎧 Ear Training",
@@ -140,23 +131,18 @@ export default async function HomePage() {
       href: "/ear-training",
       requiresAuth: true,
       imageSrc: "/home/ear-training.jpg",
-      imageAlt: "Ear training",
     },
     {
       title: "🎹 Chord & Scale Finder",
-      description: "Explore chords and scales for guitar, bass, and keyboards.",
+      description: "Explore chords and scales.",
       href: "/finder",
-      requiresAuth: false,
       imageSrc: "/home/finder.jpg",
-      imageAlt: "Chord and scale finder",
     },
     {
       title: "🎼 Chord Progressions",
-      description: "Generate common progressions by key and style.",
+      description: "Generate progressions by key and style.",
       href: "/progressions",
-      requiresAuth: false,
       imageSrc: "/home/progressions.jpg",
-      imageAlt: "Chord progressions",
     },
   ];
 
@@ -176,32 +162,31 @@ export default async function HomePage() {
       </div>
 
       <div className="mx-auto max-w-5xl px-6 py-12">
-        <div>
-          <h1 className="text-4xl font-semibold tracking-tight">
-            Tonehouse Studio Apps
-          </h1>
-          <p className="mt-3 text-zinc-400">
-            Practice and learning tools for modern musicians.
-          </p>
-        </div>
+        <h1 className="text-4xl font-semibold tracking-tight">
+          Tonehouse Studio Apps
+        </h1>
 
         <div className="mt-8 mb-8 h-px bg-zinc-800" />
 
         {!hasAccess && <SubscriptionComingSoon />}
 
         <div className="grid gap-6 md:grid-cols-3">
-          {cards.map((c) => (
-            <Card
-              key={c.href}
-              title={c.title}
-              description={c.description}
-              href={Boolean(c.requiresAuth) && !hasAccess ? "/billing" : c.href}
-              disabled={Boolean(c.requiresAuth) && !hasAccess}
-              imageSrc={c.imageSrc}
-              imageAlt={c.imageAlt}
-              highlighted={c.href === "/coach"}
-            />
-          ))}
+          {cards.map((c) => {
+            const destination =
+              c.requiresAuth && !hasAccess ? "/billing" : c.href;
+
+            return (
+              <Card
+                key={c.href}
+                title={c.title}
+                description={c.description}
+                href={destination}
+                disabled={Boolean(c.requiresAuth) && !hasAccess}
+                imageSrc={c.imageSrc}
+                highlighted={c.href === "/coach"}
+              />
+            );
+          })}
         </div>
       </div>
     </main>
