@@ -162,9 +162,14 @@ export default async function HomePage() {
       </div>
 
       <div className="mx-auto max-w-5xl px-6 py-12">
-        <h1 className="text-4xl font-semibold tracking-tight">
-          Tonehouse Studio Apps
-        </h1>
+       <div>
+  <h1 className="text-4xl font-semibold tracking-tight">
+    Tonehouse Studio Apps
+  </h1>
+  <p className="mt-3 text-zinc-400">
+    Practice and learning tools for modern musicians.
+  </p>
+</div>
 
         <div className="mt-8 mb-8 h-px bg-zinc-800" />
 
