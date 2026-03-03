@@ -73,5 +73,11 @@ export const middleware = withAuth(
 );
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
+  matcher: [
+    /*
+     Exclude ALL API routes from middleware
+     Stripe MUST bypass auth completely
+    */
+    "/((?!api|_next/static|_next/image|favicon.ico).*)",
+  ],
 };
