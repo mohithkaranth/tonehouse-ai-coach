@@ -101,8 +101,11 @@ export default async function HomePage() {
   const cards: CardDef[] = [
     {
       title: "Start Music from Zero",
-      description: "No theory. No jargon. Just the basics that matter.",
-      href: "/start",
+  description: "No theory. No jargon. Just the basics that matter.",
+  href: "/start",
+  requiresAuth: false,
+  imageSrc: "/home/starter.jpg",
+  imageAlt: "Start music from zero",
     },
     {
       title: "🎵 Practice Coach",
