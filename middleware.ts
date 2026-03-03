@@ -1,7 +1,6 @@
 import { withAuth } from "next-auth/middleware";
 import type { NextRequest } from "next/server";
 
-// ✅ match any public static file: .jpg, .png, .svg, .css, .js, etc.
 const PUBLIC_FILE = /\.(.*)$/;
 
 function isPublicPath(pathname: string) {
@@ -35,10 +34,10 @@ export const middleware = withAuth(
       authorized: ({ token, req }) => {
         const { pathname } = req.nextUrl;
 
-        // ✅ Allow ALL public files
+        // ✅ static files
         if (PUBLIC_FILE.test(pathname)) return true;
 
-        // ✅ Allow Next.js internals
+        // ✅ Next internals
         if (
           pathname.startsWith("/_next") ||
           pathname.startsWith("/favicon") ||
@@ -48,24 +47,23 @@ export const middleware = withAuth(
           return true;
         }
 
-        // ✅ Allow NextAuth routes
+        // ✅ NextAuth
         if (pathname.startsWith("/api/auth")) return true;
 
-        // ✅ ✅ STRIPE WEBHOOK BYPASS (FIX)
-        if (pathname.startsWith("/api/stripe/webhook")) return true;
+        // ✅ Stripe webhook (CRITICAL)
+        if (pathname.startsWith("/api/stripe")) return true;
 
-        // ✅ Allow public APIs
+        // ✅ Public APIs
         if (pathname.startsWith("/api/youtube-search")) return true;
 
         // ✅ Public pages
         if (isPublicPath(pathname)) return true;
 
-        // 🔒 Protected pages
+        // 🔒 Protected
         if (isProtectedPath(pathname)) {
           return !!token;
         }
 
-        // 🔒 Default: require login
         return !!token;
       },
     },
