@@ -36,21 +36,21 @@ function Card({
   highlighted?: boolean;
 }) {
   const baseClass = cn(
-    "rounded-3xl border p-6 transition",
+    "rounded-2xl border border-zinc-700 bg-zinc-900 p-6 shadow-lg shadow-black/40 ring-1 ring-white/5 transition-all duration-200",
     highlighted
-      ? "border-zinc-600 bg-zinc-900/50 ring-1 ring-zinc-500/50"
-      : "border-zinc-800 bg-zinc-900/50"
+      ? "border-zinc-600"
+      : ""
   );
 
-  const enabledClass = "hover:bg-zinc-900";
+  const enabledClass = "hover:scale-[1.02] hover:border-zinc-600";
   const disabledClass =
-    "opacity-60 cursor-not-allowed select-none hover:bg-zinc-900/50";
+    "cursor-not-allowed select-none opacity-60";
 
   return (
     <Link href={href} prefetch={false} className="block">
       <div className={cn(baseClass, disabled ? disabledClass : enabledClass)}>
         {imageSrc && (
-          <div className="relative mb-4 h-32 w-full overflow-hidden rounded-2xl border border-zinc-800">
+          <div className="relative mb-4 h-48 w-full overflow-hidden rounded-2xl border border-zinc-800">
             <Image
               src={imageSrc}
               alt={imageAlt ?? ""}
@@ -64,7 +64,7 @@ function Card({
         )}
 
         <div className="flex items-start justify-between gap-3">
-          <h2 className="text-xl font-medium">{title}</h2>
+          <h2 className="text-lg font-semibold tracking-tight text-zinc-100">{title}</h2>
 
           {highlighted && (
             <span className="rounded-full border border-zinc-700 bg-zinc-800/70 px-3 py-1 text-xs text-zinc-200">
@@ -79,7 +79,7 @@ function Card({
           )}
         </div>
 
-        <p className="mt-2 text-sm text-zinc-400">{description}</p>
+        <p className="mt-2 text-sm text-zinc-300">{description}</p>
 
         {disabled && (
           <p className="mt-4 text-xs text-zinc-500">
