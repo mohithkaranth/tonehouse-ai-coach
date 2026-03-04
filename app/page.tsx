@@ -36,7 +36,7 @@ function Card({
   highlighted?: boolean;
 }) {
   const baseClass = cn(
-    "rounded-2xl border border-zinc-700 bg-zinc-900 p-6 shadow-lg shadow-black/40 ring-1 ring-white/5 transition-all duration-200",
+    "rounded-2xl border border-zinc-700 bg-zinc-900 p-6 shadow-lg shadow-black/40 ring-1 ring-white/5 transition-all duration-200 min-h-[280px]",
     highlighted
       ? "border-zinc-600"
       : ""

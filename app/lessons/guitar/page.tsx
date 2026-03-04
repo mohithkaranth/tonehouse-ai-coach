@@ -20,7 +20,7 @@ export default function GuitarLessonsPage() {
           🎸 Guitar Lessons
         </h1>
 
-        <div className="mt-8 space-y-2">
+        <div className="mt-8 grid gap-4">
           {lessons.map((lesson) => (
             <Link
               key={lesson.id}

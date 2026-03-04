@@ -413,7 +413,7 @@ export default function CoachForm({
       <button
         onClick={runCoach}
         disabled={loading}
-        className="rounded-2xl bg-white/90 py-3 text-sm font-medium text-black shadow transition hover:bg-white disabled:opacity-60"
+        className="rounded-2xl bg-white px-6 py-3 text-sm font-semibold text-black shadow-md transition hover:bg-zinc-200 disabled:opacity-60"
       >
         {loading ? "Generating practice plan…" : "Generate Practice Plan"}
       </button>
