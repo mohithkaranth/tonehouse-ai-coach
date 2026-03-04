@@ -56,7 +56,7 @@ export default function LessonClient({
 
   return (
     <main className="min-h-screen bg-zinc-950 text-zinc-50">
-      <div className="mx-auto max-w-4xl px-6 py-16">
+      <div className="mx-auto max-w-4xl space-y-6 px-6 py-16">
 
         {/* Top navigation */}
         <div className="mb-10 flex items-center justify-between gap-4">
@@ -97,7 +97,7 @@ export default function LessonClient({
           </h1>
 
           {lesson.summary && (
-            <p className="mt-3 text-zinc-400">
+            <p className="mt-3 text-sm text-zinc-300">
               {lesson.summary}
             </p>
           )}
@@ -105,11 +105,11 @@ export default function LessonClient({
 
         {/* Key points */}
         <div className="mb-8">
-          <h2 className="mb-3 text-xl font-medium">
+          <h2 className="mb-3 text-lg font-semibold tracking-tight text-zinc-100">
             Key points
           </h2>
 
-          <ul className="list-disc space-y-2 pl-6 text-zinc-300">
+          <ul className="list-disc space-y-2 pl-6 text-sm text-zinc-300">
             {(lesson.keyPoints || []).map((point, i) => (
               <li key={i}>{point}</li>
             ))}
@@ -118,11 +118,11 @@ export default function LessonClient({
 
         {/* Common mistakes */}
         <div className="mb-10">
-          <h2 className="mb-3 text-xl font-medium">
+          <h2 className="mb-3 text-lg font-semibold tracking-tight text-zinc-100">
             Common mistakes
           </h2>
 
-          <ul className="list-disc space-y-2 pl-6 text-zinc-300">
+          <ul className="list-disc space-y-2 pl-6 text-sm text-zinc-300">
             {(lesson.commonMistakes || []).map((mistake, i) => (
               <li key={i}>{mistake}</li>
             ))}
@@ -132,9 +132,9 @@ export default function LessonClient({
         {/* Video */}
         {selectedVideo && (
           <div className="mb-12">
-            <h2 className="mb-4 text-xl font-medium">Lesson Video</h2>
+            <h2 className="mb-4 text-lg font-semibold tracking-tight text-zinc-100">Lesson Video</h2>
 
-            <div className="relative aspect-video overflow-hidden rounded-xl border border-zinc-800">
+            <div className="relative aspect-video overflow-hidden rounded-2xl border border-zinc-700 bg-zinc-900 p-1 shadow-lg shadow-black/40 ring-1 ring-white/5">
               <iframe
                 src={`https://www.youtube.com/embed/${selectedVideo.youtubeId}`}
                 className="absolute inset-0 h-full w-full"
@@ -146,11 +146,11 @@ export default function LessonClient({
 
         {/* 2-minute practice drill */}
         <div className="mt-10">
-          <h2 className="mb-3 text-xl font-medium">
+          <h2 className="mb-3 text-lg font-semibold tracking-tight text-zinc-100">
             2-minute practice drill
           </h2>
 
-          <ul className="list-disc space-y-2 pl-6 text-zinc-300">
+          <ul className="list-disc space-y-2 pl-6 text-sm text-zinc-300">
             {(lesson.practiceDrill || []).map((drill, i) => (
               <li key={i}>{drill}</li>
             ))}
@@ -175,12 +175,12 @@ export default function LessonClient({
 
         {/* Video suggestions */}
         {videos.length > 0 && (
-          <div className="mt-8 grid gap-4">
+          <div className="mt-8 space-y-2">
             {videos.map((v) => (
               <div
                 key={v.youtubeId}
                 onClick={() => setSelectedVideo(v)}
-                className="flex cursor-pointer gap-4 rounded-xl border border-zinc-800 bg-zinc-900/40 p-4 hover:bg-zinc-900 transition"
+                className="flex cursor-pointer gap-4 rounded-2xl border border-zinc-700 bg-zinc-900 p-6 shadow-lg shadow-black/40 ring-1 ring-white/5 transition-all duration-200 hover:border-zinc-600"
               >
                 {v.thumbnail && (
                   <img
@@ -191,10 +191,10 @@ export default function LessonClient({
                 )}
 
                 <div>
-                  <div className="font-medium">
+                  <div className="text-lg font-semibold tracking-tight text-zinc-100">
                     {v.title}
                   </div>
-                  <div className="text-sm text-zinc-400">
+                  <div className="text-sm text-zinc-300">
                     {v.channelTitle}
                   </div>
                 </div>

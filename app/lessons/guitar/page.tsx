@@ -20,17 +20,17 @@ export default function GuitarLessonsPage() {
           🎸 Guitar Lessons
         </h1>
 
-        <div className="mt-8 grid gap-4">
+        <div className="mt-8 space-y-2">
           {lessons.map((lesson) => (
             <Link
               key={lesson.id}
               href={`/lessons/${lesson.id}`}
-              className="rounded-xl border border-zinc-800 bg-zinc-900/40 p-5 hover:bg-zinc-900 transition"
+              className="rounded-2xl border border-zinc-700 bg-zinc-900 p-6 shadow-lg shadow-black/40 ring-1 ring-white/5 transition-all duration-200 hover:border-zinc-600"
             >
-              <h2 className="text-lg font-medium">{lesson.title}</h2>
+              <h2 className="text-lg font-semibold tracking-tight text-zinc-100">{lesson.title}</h2>
 
               {lesson.summary && (
-                <p className="mt-2 text-sm text-zinc-400">
+                <p className="mt-2 text-sm text-zinc-300">
                   {lesson.summary}
                 </p>
               )}

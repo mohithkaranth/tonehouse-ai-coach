@@ -266,7 +266,7 @@ export default function CoachForm({
   }, [effectiveVideos]);
 
   return (
-    <div className="grid gap-10">
+    <div className="space-y-6">
       {/* ===== FORM ===== */}
       <div className="grid gap-6 md:grid-cols-3">
         <label className="grid gap-1 text-sm">
@@ -362,7 +362,7 @@ export default function CoachForm({
       </label>
 
       {/* ===== SHEET MUSIC / TABS (RESTORED) ===== */}
-      <div className="rounded-3xl border border-white/18 ring-1 ring-white/10 bg-zinc-950/55 p-5 shadow-sm">
+      <div className="rounded-2xl border border-zinc-700 bg-zinc-900 p-6 shadow-lg shadow-black/40 ring-1 ring-white/5">
         <div className="mb-3 flex items-center gap-3">
           <input
             type="checkbox"
@@ -419,16 +419,16 @@ export default function CoachForm({
       </button>
 
       {/* ===== OUTPUT ===== */}
-      <div className="rounded-3xl border border-white/25 ring-1 ring-white/15 bg-zinc-950/55 p-6 shadow-inner">
-        <div className="mb-3 text-xs uppercase tracking-widest text-zinc-500">
+      <div className="rounded-2xl border border-zinc-700 bg-zinc-900 p-6 shadow-lg shadow-black/40 ring-1 ring-white/5">
+        <div className="mb-3 text-lg font-semibold tracking-tight text-zinc-100">
           Lesson Output
         </div>
 
-        <div className="prose prose-invert max-w-none prose-p:my-2 prose-ul:my-2 prose-li:my-1 prose-h2:mt-4 prose-h2:mb-2 prose-h3:mt-3 prose-h3:mb-1">
+        <div className="prose prose-invert max-w-none prose-p:my-2 prose-ul:my-2 prose-li:my-1 prose-h2:mt-4 prose-h2:mb-2 prose-h2:text-lg prose-h2:font-semibold prose-h2:tracking-tight prose-h2:text-zinc-100 prose-h3:mt-3 prose-h3:mb-1 prose-h3:text-xl prose-h3:font-bold">
           {resultMd ? (
             <ReactMarkdown remarkPlugins={[remarkGfm]}>{resultMd}</ReactMarkdown>
           ) : (
-            <p className="text-zinc-500">
+            <p className="text-sm text-zinc-300">
               Your structured lesson plan will appear here.
             </p>
           )}
@@ -437,7 +437,7 @@ export default function CoachForm({
         {/* ===== VIDEOS ===== */}
         {resultMd ? (
           <div className="mt-8 border-t border-white/10 pt-6">
-            <div className="mb-3 text-xs uppercase tracking-widest text-zinc-500">
+            <div className="mb-3 text-lg font-semibold tracking-tight text-zinc-100">
               Recommended Videos
             </div>
 
@@ -446,7 +446,7 @@ export default function CoachForm({
                 {embedded.map((v) => (
                   <div
                     key={v.id}
-                    className="overflow-hidden rounded-2xl border border-white/18 bg-zinc-950/60"
+                    className="overflow-hidden rounded-2xl border border-zinc-700 bg-zinc-900 p-0 shadow-lg shadow-black/40 ring-1 ring-white/5"
                   >
                     <div className="border-b border-white/10 px-4 py-3 text-sm text-zinc-200">
                       {v.title}
@@ -475,7 +475,7 @@ export default function CoachForm({
                 ))}
               </div>
             ) : (
-              <p className="text-zinc-500">
+              <p className="text-sm text-zinc-300">
                 No embeddable videos found (links may still be available below).
               </p>
             )}
