@@ -178,7 +178,7 @@ export default async function HomePage() {
 
         {!hasAccess && <SubscriptionComingSoon />}
 
-        <div className="grid gap-6 md:grid-cols-3">
+        <div className="grid gap-6 md:grid-cols-3 auto-rows-fr">
           {cards.map((c) => {
             const destination =
               c.requiresAuth && !hasAccess ? "/billing" : c.href;
