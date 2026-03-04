@@ -48,7 +48,7 @@ function Card({
 
   return (
     <Link href={href} prefetch={false} className="block">
-      <div className={cn(baseClass, disabled ? disabledClass : enabledClass)}>
+      <div className={cn(baseClass, disabled ? disabledClass : enabledClass, "flex h-full flex-col")}>
         {imageSrc && (
           <div className="relative mb-4 h-48 w-full overflow-hidden rounded-2xl border border-zinc-800">
             <Image
@@ -79,7 +79,7 @@ function Card({
           )}
         </div>
 
-        <p className="mt-2 text-sm text-zinc-300">{description}</p>
+        <p className="mt-2 text-sm text-zinc-300 flex-grow">{description}</p>
 
         {disabled && (
           <p className="mt-4 text-xs text-zinc-500">
