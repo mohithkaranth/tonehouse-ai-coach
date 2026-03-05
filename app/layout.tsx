@@ -31,9 +31,9 @@ export const metadata: Metadata = {
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
+}) {
   return (
     <html lang="en">
       <body
@@ -41,21 +41,23 @@ export default function RootLayout({
       >
         <Providers>
 
-          {/* Tonehouse Logo */}
-          <div className="fixed left-6 top-12 z-50">
-            <Link href="/">
-              <div className="flex items-center rounded-xl border border-zinc-800 bg-zinc-900/60 px-3 py-2 backdrop-blur-md hover:bg-zinc-900/80 transition">
-               <img
-        src="/tonehouse-logo.png"
-        alt="Tonehouse"
-        className="h-16 w-16 opacity-95"
+          {/* Tonehouse Floating Logo — DESKTOP ONLY */}
+          <div className="hidden lg:block fixed left-6 top-10 z-50">
+            <Link href="/" aria-label="Go to home">
+              <div className="flex items-center rounded-xl border border-zinc-800 bg-zinc-900/60 px-4 py-3 backdrop-blur-md hover:bg-zinc-900/80 transition">
+                <img
+                  src="/tonehouse-logo.png"
+                  alt="Tonehouse"
+                  className="h-16 w-16 opacity-95"
                 />
               </div>
             </Link>
           </div>
 
           <GlobalHeader />
+
           <main className="min-h-screen">{children}</main>
+
           <Footer />
 
         </Providers>
