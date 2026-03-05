@@ -4,6 +4,7 @@ import "./globals.css";
 import Providers from "./providers";
 import GlobalHeader from "./components/GlobalHeader";
 import Footer from "./components/Footer";
+import Link from "next/link";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -39,9 +40,24 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} min-h-screen bg-zinc-950 text-zinc-100`}
       >
         <Providers>
+
+          {/* Tonehouse Logo */}
+          <div className="fixed left-6 top-12 z-50">
+            <Link href="/">
+              <div className="flex items-center rounded-xl border border-zinc-800 bg-zinc-900/60 px-3 py-2 backdrop-blur-md hover:bg-zinc-900/80 transition">
+               <img
+        src="/tonehouse-logo.png"
+        alt="Tonehouse"
+        className="h-16 w-16 opacity-95"
+                />
+              </div>
+            </Link>
+          </div>
+
           <GlobalHeader />
           <main className="min-h-screen">{children}</main>
           <Footer />
+
         </Providers>
       </body>
     </html>
