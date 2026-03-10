@@ -7,7 +7,8 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 
 export async function POST(req: Request) {
   try {
-    const { customerId } = await req.json()
+    const body = await req.json().catch(() => ({}));
+const customerId = body.customerId;
 
     const portalSession = await stripe.billingPortal.sessions.create({
       customer: customerId,
