@@ -17,6 +17,8 @@ type MeStats = {
   createdAt: string;
   lastLoginAt: string | null;
   loginCount: number;
+  subscriptionStatus?: string;
+  currentPeriodEnd?: string | null;
 };
 
 function fmt(iso?: string | null) {
@@ -30,8 +32,6 @@ function fmt(iso?: string | null) {
   }).format(new Date(iso));
 }
 
-// ✅ Bug fix: block Google OAuth from in-app browsers (LinkedIn/WhatsApp/Instagram WebView)
-// This prevents users from entering the /signin flow in an embedded browser where Google returns 403 disallowed_useragent.
 function isLikelyInAppBrowser() {
   if (typeof window === "undefined") return false;
   const ua = (navigator.userAgent || "").toLowerCase();
@@ -43,7 +43,7 @@ function isLikelyInAppBrowser() {
     ua.includes("fban") ||
     ua.includes("messenger") ||
     ua.includes("whatsapp") ||
-    ua.includes("wv") // Android WebView
+    ua.includes("wv")
   );
 }
 
@@ -78,7 +78,6 @@ export default function GlobalHeader() {
         <div className="h-11 w-11 animate-pulse rounded-full bg-zinc-800/60" />
       ) : session?.user ? (
         <div className="relative">
-          {/* Avatar */}
           <button
             onClick={() => setOpen((v) => !v)}
             aria-label="Account menu"
@@ -90,7 +89,6 @@ export default function GlobalHeader() {
             </span>
           </button>
 
-          {/* Dropdown */}
           {open && (
             <div
               className="absolute right-0 mt-2 w-64 rounded-2xl border border-zinc-800 bg-zinc-950/95 p-2 text-sm text-zinc-200 shadow-xl backdrop-blur"
@@ -108,7 +106,6 @@ export default function GlobalHeader() {
 
               <div className="my-2 h-px bg-zinc-800" />
 
-              {/* Stats */}
               <div className="px-3 py-2">
                 <div className="grid grid-cols-2 gap-y-2 text-xs">
                   <div className="text-zinc-400">Member since</div>
@@ -130,29 +127,63 @@ export default function GlobalHeader() {
 
               <div className="my-2 h-px bg-zinc-800" />
 
-              <Link
-  href="/billing"
-  className="block w-full rounded-lg px-3 py-2 text-left hover:bg-zinc-900"
->
-  Manage Billing
-</Link>
+              {stats?.subscriptionStatus && (
+                <>
+                  <div className="px-3 py-2 text-xs">
+                    <div className="flex justify-between">
+                      <span className="text-zinc-400">Plan</span>
+                      <span className="text-zinc-200">
+                        {stats.subscriptionStatus}
+                      </span>
+                    </div>
 
-<button
-  onClick={() => signOut()}
-  className="w-full rounded-lg px-3 py-2 text-left hover:bg-zinc-900"
->
-  Sign out
-</button>
+                    {stats.currentPeriodEnd && (
+                      <div className="flex justify-between mt-1">
+                        <span className="text-zinc-400">Renews</span>
+                        <span className="text-zinc-200">
+                          {fmt(stats.currentPeriodEnd)}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="my-2 h-px bg-zinc-800" />
+                </>
+              )}
+
+              <div className="px-3 py-2 text-xs text-zinc-400">
+                Trial ends in 7 days
+              </div>
+
+              <button
+                onClick={async () => {
+                  const res = await fetch("/api/stripe/portal", {
+                    method: "POST",
+                  });
+                  const data = await res.json();
+                  if (!data?.url) return;
+                  window.location.href = data.url;
+                }}
+                className="w-full rounded-lg px-3 py-2 text-left hover:bg-zinc-900"
+              >
+                Manage Billing
+              </button>
+
+              <button
+                onClick={() => signOut()}
+                className="w-full rounded-lg px-3 py-2 text-left hover:bg-zinc-900"
+              >
+                Sign out
+              </button>
             </div>
           )}
         </div>
       ) : inAppBrowser ? (
-        // ✅ Same styling as link (no redesign) — but blocks /signin to avoid Google 403 in WebView.
         <button
           type="button"
           onClick={() =>
             alert(
-              "Google sign-in may fail inside in-app browsers (LinkedIn/WhatsApp). Open this link in Chrome/Safari and try again."
+              "Google sign-in may fail inside in-app browsers. Open in Chrome/Safari and try again."
             )
           }
           className="rounded-full border border-zinc-800 bg-zinc-900/60 px-4 py-2 text-sm text-zinc-200 backdrop-blur hover:bg-zinc-900/80 hover:text-white"
