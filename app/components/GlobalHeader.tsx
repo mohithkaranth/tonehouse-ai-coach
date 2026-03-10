@@ -151,31 +151,32 @@ export default function GlobalHeader() {
                 </>
               )}
 
-              <div className="px-3 py-2 text-xs text-zinc-400">
-                Trial ends in 7 days
-              </div>
+              {stats?.subscriptionStatus === "trialing" && (
+                <div className="px-3 py-2 text-xs text-zinc-400">
+                  Trial active
+                </div>
+              )}
 
-              <button
-                onClick={async () => {
-                  const res = await fetch("/api/stripe/portal", {
-  method: "POST",
-});
+              {stats?.subscriptionStatus && (
+                <button
+                  onClick={async () => {
+                    const res = await fetch("/api/stripe/portal", {
+                      method: "POST",
+                    });
 
-if (!res.ok) {
-  console.error("Stripe portal request failed");
-  return;
-}
+                    if (!res.ok) return;
 
-const data = await res.json();
+                    const data = await res.json();
 
-if (data?.url) {
-  window.location.href = data.url;
-}
-                }}
-                className="w-full rounded-lg px-3 py-2 text-left hover:bg-zinc-900"
-              >
-                Manage Billing
-              </button>
+                    if (data?.url) {
+                      window.location.href = data.url;
+                    }
+                  }}
+                  className="w-full rounded-lg px-3 py-2 text-left hover:bg-zinc-900"
+                >
+                  Manage Billing
+                </button>
+              )}
 
               <button
                 onClick={() => signOut()}
