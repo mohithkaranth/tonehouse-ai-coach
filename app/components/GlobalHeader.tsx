@@ -130,12 +130,19 @@ export default function GlobalHeader() {
 
               <div className="my-2 h-px bg-zinc-800" />
 
-              <button
-                onClick={() => signOut()}
-                className="w-full rounded-lg px-3 py-2 text-left hover:bg-zinc-900"
-              >
-                Sign out
-              </button>
+              <Link
+  href="/billing"
+  className="block w-full rounded-lg px-3 py-2 text-left hover:bg-zinc-900"
+>
+  Manage Billing
+</Link>
+
+<button
+  onClick={() => signOut()}
+  className="w-full rounded-lg px-3 py-2 text-left hover:bg-zinc-900"
+>
+  Sign out
+</button>
             </div>
           )}
         </div>
