@@ -158,11 +158,19 @@ export default function GlobalHeader() {
               <button
                 onClick={async () => {
                   const res = await fetch("/api/stripe/portal", {
-                    method: "POST",
-                  });
-                  const data = await res.json();
-                  if (!data?.url) return;
-                  window.location.href = data.url;
+  method: "POST",
+});
+
+if (!res.ok) {
+  console.error("Stripe portal request failed");
+  return;
+}
+
+const data = await res.json();
+
+if (data?.url) {
+  window.location.href = data.url;
+}
                 }}
                 className="w-full rounded-lg px-3 py-2 text-left hover:bg-zinc-900"
               >
