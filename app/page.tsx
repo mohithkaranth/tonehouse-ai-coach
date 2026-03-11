@@ -178,7 +178,7 @@ export default async function HomePage() {
    {!hasAccess && (
  <Link href="/billing">
   <div className="mb-8 rounded-xl border border-zinc-800 bg-zinc-900/60 px-4 py-3 text-sm text-zinc-300 cursor-pointer hover:bg-zinc-900/80 transition">
-    🎸 Subscribe to unlock all features.
+    🎸 Unlock all features — start a free trial.
   </div>
 </Link>
 )}

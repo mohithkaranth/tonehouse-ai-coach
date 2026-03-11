@@ -30,7 +30,7 @@ export default function BillingCheckoutButton() {
       disabled={loading}
       className="rounded-xl border border-zinc-700 bg-zinc-800 px-4 py-2 text-sm text-zinc-100 transition hover:bg-zinc-700 disabled:cursor-not-allowed disabled:opacity-70"
     >
-      {loading ? "Redirecting..." : "Start Free Trial"}
+      {loading ? "Redirecting..." : "Start Free Trial (7 days free • cancel anytime)"}
     </button>
   );
 }
