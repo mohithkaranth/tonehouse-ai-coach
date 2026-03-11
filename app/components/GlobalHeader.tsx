@@ -72,6 +72,11 @@ export default function GlobalHeader() {
     })();
   }, [open, session, stats, loading]);
 
+  const subscriptionActive =
+    stats?.subscriptionStatus &&
+    stats?.currentPeriodEnd &&
+    new Date(stats.currentPeriodEnd) > new Date();
+
   return (
     <div className="fixed right-4 top-4 z-50 sm:right-6 sm:top-6">
       {status === "loading" ? (
@@ -157,19 +162,30 @@ export default function GlobalHeader() {
                 </div>
               )}
 
-              {stats?.subscriptionStatus && (
+              {subscriptionActive && (
                 <button
                   onClick={async () => {
-                    const res = await fetch("/api/stripe/portal", {
-                      method: "POST",
-                    });
+                    try {
+                      const res = await fetch("/api/stripe/portal", {
+                        method: "POST",
+                      });
 
-                    if (!res.ok) return;
+                      if (!res.ok) {
+                        alert("Unable to open billing portal. Please try again.");
+                        return;
+                      }
 
-                    const data = await res.json();
+                      const data = await res.json();
 
-                    if (data?.url) {
-                      window.location.href = data.url;
+                      if (data?.url) {
+                        window.location.href = data.url;
+                      } else {
+                        alert(
+                          "Billing portal unavailable. Please contact support."
+                        );
+                      }
+                    } catch {
+                      alert("Network error. Please try again.");
                     }
                   }}
                   className="w-full rounded-lg px-3 py-2 text-left hover:bg-zinc-900"
