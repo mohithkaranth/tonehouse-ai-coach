@@ -176,9 +176,11 @@ export default async function HomePage() {
         <div className="mt-8 mb-8 h-px bg-zinc-800" />
 
    {!hasAccess && (
-  <div className="mb-8 rounded-xl border border-zinc-800 bg-zinc-900/60 px-4 py-3 text-sm text-zinc-300">
+ <Link href="/billing">
+  <div className="mb-8 rounded-xl border border-zinc-800 bg-zinc-900/60 px-4 py-3 text-sm text-zinc-300 cursor-pointer hover:bg-zinc-900/80 transition">
     🎸 Subscribe to unlock all features.
   </div>
+</Link>
 )}
 
         <div className="grid gap-6 md:grid-cols-3 auto-rows-fr">
