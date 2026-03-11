@@ -138,7 +138,11 @@ export default function GlobalHeader() {
                     <div className="flex justify-between">
                       <span className="text-zinc-400">Plan</span>
                       <span className="text-zinc-200">
-                        {stats.subscriptionStatus}
+                        {stats.subscriptionStatus === "trialing"
+                          ? "Pro Plan (Trial)"
+                          : stats.subscriptionStatus === "active"
+                          ? "Pro Plan"
+                          : stats.subscriptionStatus}
                       </span>
                     </div>
 

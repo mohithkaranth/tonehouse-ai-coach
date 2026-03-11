@@ -1,7 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
 import { getServerSession } from "next-auth";
-import SubscriptionComingSoon from "@/components/subscription/SubscriptionComingSoon";
 import { authOptions } from "@/lib/auth";
 import { hasFullAccess } from "@/lib/hasFullAccess";
 
@@ -176,7 +175,11 @@ export default async function HomePage() {
 
         <div className="mt-8 mb-8 h-px bg-zinc-800" />
 
-        {!hasAccess && <SubscriptionComingSoon />}
+   {!hasAccess && (
+  <div className="mb-8 rounded-xl border border-zinc-800 bg-zinc-900/60 px-4 py-3 text-sm text-zinc-300">
+    🎸 Subscribe to unlock all features.
+  </div>
+)}
 
         <div className="grid gap-6 md:grid-cols-3 auto-rows-fr">
           {cards.map((c) => {
