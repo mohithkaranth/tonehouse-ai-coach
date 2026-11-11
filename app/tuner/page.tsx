@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { createAudioContext } from "@/lib/audio/chordPlayer";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 const A4 = 440;
@@ -97,7 +98,7 @@ export default function TunerPage() {
       });
       streamRef.current = stream;
 
-      const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const ctx = createAudioContext();
       audioCtxRef.current = ctx;
 
       const source = ctx.createMediaStreamSource(stream);
@@ -133,8 +134,9 @@ export default function TunerPage() {
       };
 
       rafRef.current = requestAnimationFrame(tick);
-    } catch (e: any) {
-      const name = e?.name || "";
+    } catch (error) {
+      stop();
+      const name = error instanceof Error ? error.name : "";
       if (name === "NotAllowedError" || name === "PermissionDeniedError") {
         setError("Microphone permission denied. Please allow mic access in your browser settings.");
       } else {
@@ -168,7 +170,6 @@ export default function TunerPage() {
 
   useEffect(() => {
     return () => stop();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (

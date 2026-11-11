@@ -1,7 +1,9 @@
+import { requirePaidPage } from "@/lib/getUserAccessLevel";
 import Link from "next/link";
 import { listLessonsByInstrument } from "@/lib/lessons";
 
-export default function GuitarLessonsPage() {
+export default async function GuitarLessonsPage() {
+  await requirePaidPage("/lessons/guitar");
   const lessons = listLessonsByInstrument("guitar");
 
   return (

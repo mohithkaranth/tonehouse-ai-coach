@@ -1,75 +1,75 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
-import { stripe } from "@/lib/stripe";
+import { getMembership } from "@/lib/hasFullAccess";
+import { billingUrl, getStripe } from "@/lib/stripe";
+import { syncStripeSubscription, withBillingLock } from "@/lib/stripe-billing";
+import { subscriptionIsOpen } from "@/lib/stripe-subscriptions";
 
-export async function POST(request: Request) {
-  const session = await getServerSession(authOptions);
-  const email = session?.user?.email;
+export const maxDuration = 55;
 
-  if (!email) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+export async function POST() {
+  try {
+    const session = await getServerSession(authOptions);
+    const email = session?.user?.email;
+    if (!email) return NextResponse.json({ error: "Sign in to continue." }, { status: 401 });
 
-  const betaUser = await prisma.betaUser.findUnique({
-    where: { email },
-    select: { id: true },
-  });
+    const { isBeta, user } = await getMembership(email);
+    if (isBeta) return NextResponse.json({ error: "Your beta account already has full access." }, { status: 409 });
+    if (!user) return NextResponse.json({ error: "Account not found." }, { status: 404 });
 
-  if (betaUser) {
-    return NextResponse.json({ error: "already full access" }, { status: 400 });
-  }
+    const priceId = process.env.STRIPE_PRICE_ID;
+    if (!priceId) throw new Error("Missing STRIPE_PRICE_ID");
+    const stripe = getStripe();
 
-  const user = await prisma.user.findUnique({
-    where: { email },
-    select: { id: true, stripeCustomerId: true, name: true, email: true },
-  });
+    const result = await withBillingLock(user.id, async (db) => {
+      const account = await db.user.findUniqueOrThrow({ where: { id: user.id } });
+      let customerId = account.stripeCustomerId;
+      if (!customerId) {
+        const customer = await stripe.customers.create({
+          email: account.email,
+          name: account.name ?? undefined,
+          metadata: { userId: account.id },
+        }, { idempotencyKey: `tonehouse-customer-${account.id}` });
+        customerId = customer.id;
+        await db.user.update({ where: { id: account.id }, data: { stripeCustomerId: customerId } });
+      }
 
-  if (!user) {
-    return NextResponse.json({ error: "User not found" }, { status: 404 });
-  }
+      // Inspect open Checkout before checking subscriptions, since a session can complete between reads.
+      let openCheckoutUrl: string | undefined;
+      for await (const checkout of stripe.checkout.sessions.list({ customer: customerId, status: "open" })) {
+        if (checkout.mode === "subscription" && checkout.url) {
+          openCheckoutUrl = checkout.url;
+          break;
+        }
+      }
 
-  let customerId = user.stripeCustomerId;
+      const current = await syncStripeSubscription(db, account.id, customerId);
+      if (current && subscriptionIsOpen(current.status)) return { existing: true } as const;
+      if (openCheckoutUrl) return { url: openCheckoutUrl };
 
-  if (!customerId) {
-    const customer = await stripe.customers.create({
-      email: user.email,
-      name: user.name ?? undefined,
-      metadata: { userId: user.id },
+      const checkout = await stripe.checkout.sessions.create({
+        mode: "subscription",
+        customer: customerId,
+        line_items: [{ price: priceId, quantity: 1 }],
+        metadata: { tonehouseUserId: account.id },
+        subscription_data: { trial_period_days: 7 },
+        success_url: billingUrl("/billing?success=true"),
+        cancel_url: billingUrl("/billing?canceled=true"),
+      });
+      return { url: checkout.url };
     });
 
-    customerId = customer.id;
-
-    await prisma.user.update({
-      where: { id: user.id },
-      data: { stripeCustomerId: customerId },
-    });
+    if ("existing" in result) {
+      return NextResponse.json(
+        { error: "You already have a subscription. Open billing to manage it." },
+        { status: 409 },
+      );
+    }
+    if (!result.url) throw new Error("Stripe checkout URL missing");
+    return NextResponse.json({ url: result.url });
+  } catch (error) {
+    console.error("Checkout failed", { name: error instanceof Error ? error.name : "Unknown" });
+    return NextResponse.json({ error: "Checkout is temporarily unavailable." }, { status: 503 });
   }
-
-  const priceId = process.env.STRIPE_PRICE_ID;
-
-  if (!priceId) {
-    return NextResponse.json({ error: "Missing STRIPE_PRICE_ID" }, { status: 500 });
-  }
-
-  const origin = new URL(request.url).origin;
-
-  const checkoutSession = await stripe.checkout.sessions.create({
-    mode: "subscription",
-    customer: customerId,
-    line_items: [
-      {
-        price: priceId,
-        quantity: 1,
-      },
-    ],
-    subscription_data: {
-      trial_period_days: 7,
-    },
-    success_url: `${origin}/billing?success=true`,
-    cancel_url: `${origin}/billing?canceled=true`,
-  });
-
-  return NextResponse.json({ url: checkoutSession.url });
 }

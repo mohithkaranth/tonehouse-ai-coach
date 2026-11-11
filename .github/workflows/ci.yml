@@ -1,0 +1,43 @@
+name: Coach checks
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_DB: tonehouse_test
+          POSTGRES_USER: tonehouse
+          POSTGRES_PASSWORD: tonehouse
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U tonehouse -d tonehouse_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://tonehouse:tonehouse@localhost:5432/tonehouse_test?sslmode=disable
+      TEST_DATABASE_URL: postgresql://tonehouse:tonehouse@localhost:5432/tonehouse_test?sslmode=disable
+      NEXT_TELEMETRY_DISABLED: "1"
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+          cache: npm
+      - run: npm ci
+      - run: npx prisma migrate deploy
+      - run: npx prisma generate
+      - run: npm test
+      - run: npm run lint
+      - run: npm run build

@@ -1,23 +1,33 @@
 import { getServerSession } from "next-auth";
+import { redirect } from "next/navigation";
+import { NextResponse } from "next/server";
 import { authOptions } from "@/lib/auth";
-import { hasFullAccess } from "@/lib/hasFullAccess";
+import { getMembership } from "@/lib/hasFullAccess";
 
-export type UserAccessLevel = "visitor" | "full" | "restricted";
-
-export async function getUserAccessLevel(): Promise<UserAccessLevel> {
+async function getAccess() {
   const session = await getServerSession(authOptions);
+  const email = session?.user?.email;
+  if (!email) return { level: "visitor" } as const;
 
-  if (!session?.user) {
-    return "visitor";
+  const { hasFullAccess } = await getMembership(email);
+  return { level: hasFullAccess ? "full" : "restricted", email } as const;
+}
+
+export async function requirePaidPage(path: string) {
+  const access = await getAccess();
+  if (access.level === "visitor") {
+    redirect(`/signin?callbackUrl=${encodeURIComponent(path)}`);
   }
+  if (access.level === "restricted") redirect("/billing");
+}
 
-  const email = session.user.email;
-
-  if (!email) {
-    return "restricted";
+export async function requirePaidApi() {
+  const access = await getAccess();
+  if (access.level === "visitor") {
+    return { response: NextResponse.json({ error: "Sign in to continue." }, { status: 401 }) };
   }
-
-  const fullAccess = await hasFullAccess({ email });
-
-  return fullAccess ? "full" : "restricted";
+  if (access.level === "restricted") {
+    return { response: NextResponse.json({ error: "A subscription or trial is required." }, { status: 403 }) };
+  }
+  return { email: access.email };
 }

@@ -1,6 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useStoredPreference } from "@/lib/use-stored-preference";
+
+import { useCallback, useMemo, useRef, useState } from "react";
 import {
   CHORD_INTERVALS,
   CHROMATIC_NOTES,
@@ -101,11 +103,35 @@ const NOTE_INDEX = new Map(
 
 const NATURAL_KEYS: NoteName[] = ["C", "D", "E", "F", "G", "A", "B"];
 
-let toneLoader: Promise<any> | null = null;
+type Waveform = "triangle" | "sine";
+type SynthOptions = {
+  oscillator: { type: Waveform };
+  envelope: { attack: number; decay: number; sustain: number; release: number };
+};
+type MonoSynth = {
+  toDestination(): MonoSynth;
+  oscillator: { type: Waveform };
+  triggerAttackRelease(note: string, duration: number, time: number): void;
+  dispose(): void;
+};
+type PolySynth = {
+  toDestination(): PolySynth;
+  set(options: Pick<SynthOptions, "oscillator">): void;
+  triggerAttackRelease(notes: string[], duration: number, time: number): void;
+  dispose(): void;
+};
+type ToneRuntime = {
+  Synth: new (options: SynthOptions) => MonoSynth;
+  PolySynth: new (voice: ToneRuntime["Synth"], options: SynthOptions) => PolySynth;
+  start(): Promise<void>;
+  now(): number;
+};
+
+let toneLoader: Promise<ToneRuntime> | null = null;
 
 declare global {
   interface Window {
-    Tone?: any;
+    Tone?: ToneRuntime;
   }
 }
 
@@ -119,7 +145,7 @@ function loadTone() {
   if (window.Tone) return Promise.resolve(window.Tone);
   if (toneLoader) return toneLoader;
 
-  toneLoader = new Promise((resolve, reject) => {
+  toneLoader = new Promise<ToneRuntime>((resolve, reject) => {
     const script = document.createElement("script");
     script.src = "https://cdn.jsdelivr.net/npm/tone@14.8.49/build/Tone.js";
     script.async = true;
@@ -136,13 +162,6 @@ function loadTone() {
   });
 
   return toneLoader;
-}
-
-function readStorage<T>(key: string, fallback: T) {
-  if (typeof window === "undefined") return fallback;
-  const stored = window.localStorage.getItem(key);
-  if (!stored) return fallback;
-  return stored as T;
 }
 
 /** ✅ Accepts readonly arrays (fixes Vercel TypeScript build) */
@@ -181,8 +200,8 @@ function buildChordNotes(root: NoteName, octave: number, chordType: ChordType) {
 
 export default function EarTrainingClient() {
   const [mode, setMode] = useState<Mode>("intervals");
-  const [instrument, setInstrument] = useState<Instrument>("guitar");
-  const [difficulty, setDifficulty] = useState<Difficulty>("beginner");
+  const [instrument, setInstrument] = useStoredPreference<Instrument>(STORAGE_KEYS.instrument, "guitar");
+  const [difficulty, setDifficulty] = useStoredPreference<Difficulty>(STORAGE_KEYS.difficulty, "beginner");
   const [question, setQuestion] = useState<Question | null>(null);
   const [score, setScore] = useState({ correct: 0, total: 0 });
   const [answerState, setAnswerState] = useState<AnswerState>({
@@ -190,8 +209,8 @@ export default function EarTrainingClient() {
     isCorrect: null,
   });
 
-  const monoSynthRef = useRef<any>(null);
-  const polySynthRef = useRef<any>(null);
+  const monoSynthRef = useRef<MonoSynth>(null);
+  const polySynthRef = useRef<PolySynth>(null);
 
   const intervalOptions = useMemo(
     () => INTERVAL_OPTIONS[difficulty],
@@ -206,28 +225,11 @@ export default function EarTrainingClient() {
     [difficulty]
   );
 
-  useEffect(() => {
-    setInstrument(readStorage(STORAGE_KEYS.instrument, "guitar"));
-    setDifficulty(readStorage(STORAGE_KEYS.difficulty, "beginner"));
-  }, []);
-
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      window.localStorage.setItem(STORAGE_KEYS.instrument, instrument);
-    }
-  }, [instrument]);
-
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      window.localStorage.setItem(STORAGE_KEYS.difficulty, difficulty);
-    }
-  }, [difficulty]);
-
-  useEffect(() => {
+  function resetExercise() {
     setQuestion(null);
     setAnswerState({ selected: null, isCorrect: null });
     setScore({ correct: 0, total: 0 });
-  }, [mode, difficulty]);
+  }
 
   const ensureMonoSynth = useCallback(async () => {
     const Tone = await loadTone();
@@ -440,7 +442,11 @@ export default function EarTrainingClient() {
           ).map((item) => (
             <button
               key={item.id}
-              onClick={() => setMode(item.id)}
+              onClick={() => {
+                if (mode === item.id) return;
+                setMode(item.id);
+                resetExercise();
+              }}
               className={
                 mode === item.id
                   ? "rounded-full border border-zinc-200 bg-zinc-50 px-4 py-2 text-sm font-medium text-zinc-900"
@@ -471,9 +477,10 @@ export default function EarTrainingClient() {
             <span>Difficulty</span>
             <select
               value={difficulty}
-              onChange={(event) =>
-                setDifficulty(event.target.value as Difficulty)
-              }
+              onChange={(event) => {
+                setDifficulty(event.target.value as Difficulty);
+                resetExercise();
+              }}
               className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm text-zinc-100"
             >
               <option value="beginner">beginner</option>

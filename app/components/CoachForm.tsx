@@ -4,76 +4,20 @@ import { useMemo, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
-type Mode = "practice_plan" | "warmups" | "chords" | "next_session";
-
-type VideoRec = {
-  title: string;
-  url: string;
-};
-
-type PlanJSON = {
-  instrument: string;
-  mode: string;
-  level: string;
-  genre: string;
-  goals: string;
-  focusMetric: string;
-  dayByDay: Array<{
-    day: number;
-    title: string;
-    blocks: Array<{
-      name: string;
-      minutes: number;
-      bullets: string[];
-    }>;
-  }>;
-  notes?: string[];
-};
-
-function planToMarkdown(plan: PlanJSON): string {
-  const lines: string[] = [];
-
-  lines.push(`# ${plan.instrument} – ${plan.mode.replaceAll("_", " ")}`);
-  lines.push(``);
-  lines.push(`**Level:** ${plan.level}`);
-  lines.push(`**Genre:** ${plan.genre}`);
-  lines.push(`**Goals:** ${plan.goals}`);
-  lines.push(``);
-  lines.push(`## Focus Metric`);
-  lines.push(`- ${plan.focusMetric}`);
-  lines.push(``);
-  lines.push(`## Day-by-day plan`);
-
-  for (const d of plan.dayByDay) {
-    lines.push(`### Day ${d.day}: ${d.title}`);
-    for (const b of d.blocks) {
-      lines.push(`**${b.name} (${b.minutes} min)**`);
-      for (const bullet of b.bullets) {
-        lines.push(`- ${bullet}`);
-      }
-      lines.push(``);
-    }
-  }
-
-  if (plan.notes?.length) {
-    lines.push(`## Notes`);
-    for (const n of plan.notes) lines.push(`- ${n}`);
-    lines.push(``);
-  }
-
-  return lines.join("\n");
-}
+import type { CoachMode, PracticePlan } from "@/lib/coach-plan";
+import { planToMarkdown } from "@/lib/coach-markdown";
+import { fallbackVideos, type VideoRec } from "@/lib/coach-videos";
 
 function extractYouTubeId(url: string): string | null {
   try {
     const u = new URL(url);
 
-    if (u.hostname.includes("youtu.be")) {
+    if (u.hostname === "youtu.be") {
       const id = u.pathname.replace("/", "");
       return id.length === 11 ? id : null;
     }
 
-    if (u.hostname.includes("youtube.com")) {
+    if (u.hostname === "www.youtube.com" || u.hostname === "youtube.com") {
       const v = u.searchParams.get("v");
       if (v && v.length === 11) return v;
 
@@ -90,82 +34,6 @@ function extractYouTubeId(url: string): string | null {
   }
 }
 
-function clientFallbackVideos(instrument: string): VideoRec[] {
-  const x = (instrument || "").toLowerCase();
-
-  if (x.includes("drum")) {
-    return [
-      {
-        title: "Single Stroke Roll – Rudiment Lesson",
-        url: "https://www.youtube.com/watch?v=KjpGoOq-0gc",
-      },
-      {
-        title: "Practice Pad Warmup – Hands & Timing",
-        url: "https://www.youtube.com/watch?v=nxM7i_GPars",
-      },
-    ];
-  }
-
-  if (x.includes("guitar")) {
-    return [
-      {
-        title: "One Minute Changes – Faster Chord Switching",
-        url: "https://www.youtube.com/watch?v=Ck73R_GjowE",
-      },
-      {
-        title: "Strumming & Rhythm Control",
-        url: "https://www.youtube.com/watch?v=9iVDuMN1BJA",
-      },
-    ];
-  }
-
-  if (x.includes("bass")) {
-    return [
-      {
-        title: "Beginning The Major Scale (Bass Lesson)",
-        url: "https://www.youtube.com/watch?v=2bvgAbWRdIA",
-      },
-      {
-        title: "How To Practice Scales Like A Pro (Bass)",
-        url: "https://www.youtube.com/watch?v=J7NxTxpklHY",
-      },
-    ];
-  }
-
-  if (x.includes("keyboard") || x.includes("keys") || x.includes("piano")) {
-    return [
-      {
-        title: "Beginner Piano Practice Routine (Search)",
-        url: "https://www.youtube.com/results?search_query=beginner+piano+practice+routine",
-      },
-      {
-        title: "Piano Hand Independence Beginner (Search)",
-        url: "https://www.youtube.com/results?search_query=piano+hand+independence+beginner",
-      },
-    ];
-  }
-
-  if (x.includes("vocal") || x.includes("sing")) {
-    return [
-      {
-        title: "Vocal Warmups for Beginners (Search)",
-        url: "https://www.youtube.com/results?search_query=vocal+warmups+for+beginners",
-      },
-      {
-        title: "Breath Support Basics for Singing (Search)",
-        url: "https://www.youtube.com/results?search_query=breath+support+basics+singing",
-      },
-    ];
-  }
-
-  return [
-    {
-      title: "How to practice music effectively (Search)",
-      url: "https://www.youtube.com/results?search_query=how+to+practice+music+effectively",
-    },
-  ];
-}
-
 export default function CoachForm({
   instrument,
   onInstrumentChange,
@@ -173,7 +41,7 @@ export default function CoachForm({
   instrument: string;
   onInstrumentChange: (value: string) => void;
 }) {
-  const [mode, setMode] = useState<Mode>("practice_plan");
+  const [mode, setMode] = useState<CoachMode>("practice_plan");
   const [level, setLevel] = useState("Beginner");
   const [goals, setGoals] = useState("Improve timing and technique");
   const [genre, setGenre] = useState("Rock");
@@ -236,9 +104,9 @@ export default function CoachForm({
       const data = await res.json();
 
       if (data?.ok && data?.plan) {
-        setResultMd(planToMarkdown(data.plan as PlanJSON));
+        setResultMd(planToMarkdown(data.plan as PracticePlan));
       } else {
-        setResultMd(data?.error || "No response.");
+        setResultMd(data?.error || "The Coach did not return a plan.");
       }
 
       setVideos(Array.isArray(data?.videos) ? data.videos : []);
@@ -252,7 +120,7 @@ export default function CoachForm({
   // Fallback videos if API returns none
   const effectiveVideos = useMemo(() => {
     if (videos && videos.length > 0) return videos;
-    return clientFallbackVideos(instrument);
+    return fallbackVideos(instrument);
   }, [videos, instrument]);
 
   // Only watch/shorts links embed. Search links will show as links only.
@@ -273,7 +141,7 @@ export default function CoachForm({
           <span className="text-zinc-400">Mode</span>
           <select
             value={mode}
-            onChange={(e) => setMode(e.target.value as Mode)}
+            onChange={(e) => setMode(e.target.value as CoachMode)}
             className={field}
           >
             <option value="practice_plan">Practice Plan</option>
@@ -317,6 +185,7 @@ export default function CoachForm({
           <span className="text-zinc-400">Genre</span>
           <input
             value={genre}
+            maxLength={80}
             onChange={(e) => setGenre(e.target.value)}
             className={field}
           />
@@ -346,6 +215,7 @@ export default function CoachForm({
         <textarea
           rows={3}
           value={goals}
+          maxLength={600}
           onChange={(e) => setGoals(e.target.value)}
           className={field}
         />
@@ -356,6 +226,7 @@ export default function CoachForm({
         <textarea
           rows={3}
           value={lastSessionNotes}
+          maxLength={2000}
           onChange={(e) => setLastSessionNotes(e.target.value)}
           className={field}
         />

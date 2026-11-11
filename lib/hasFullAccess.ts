@@ -1,45 +1,31 @@
 import { prisma } from "@/lib/prisma";
+import { subscriptionGrantsAccess } from "@/lib/subscription-access";
 
-type HasFullAccessInput = {
-  userId?: string;
-  email?: string | null;
-};
-
-export async function hasFullAccess({ userId, email }: HasFullAccessInput): Promise<boolean> {
-  if (email) {
-    const betaUser = await prisma.betaUser.findUnique({
+export async function getMembership(email: string) {
+  const [betaUser, user] = await Promise.all([
+    prisma.betaUser.findUnique({ where: { email }, select: { id: true } }),
+    prisma.user.findUnique({
       where: { email },
-      select: { id: true },
-    });
+      select: {
+        id: true,
+        createdAt: true,
+        lastLoginAt: true,
+        loginCount: true,
+        stripeCustomerId: true,
+        subscription: {
+          select: { status: true, currentPeriodEnd: true, trialEnd: true, cancelAtPeriodEnd: true },
+        },
+      },
+    }),
+  ]);
 
-    if (betaUser) {
-      return true;
-    }
-  }
+  return {
+    user,
+    isBeta: Boolean(betaUser),
+    hasFullAccess: Boolean(betaUser) || subscriptionGrantsAccess(user?.subscription?.status),
+  };
+}
 
-  let resolvedUserId = userId;
-
-  if (!resolvedUserId && email) {
-    const user = await prisma.user.findUnique({
-      where: { email },
-      select: { id: true },
-    });
-
-    resolvedUserId = user?.id;
-  }
-
-  if (!resolvedUserId) {
-    return false;
-  }
-
-  const subscription = await prisma.subscription.findUnique({
-    where: { userId: resolvedUserId },
-    select: { status: true },
-  });
-
-  if (!subscription) {
-    return false;
-  }
-
-  return ["trialing", "active"].includes(subscription.status);
+export async function hasFullAccess({ email }: { email?: string | null }) {
+  return email ? (await getMembership(email)).hasFullAccess : false;
 }

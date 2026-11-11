@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useState } from "react";
+import { useStoredPreference } from "@/lib/use-stored-preference";
 import {
   CHROMATIC_NOTES,
   buildDiatonicChords,
@@ -142,25 +143,6 @@ const ALT_TEMPLATES: Record<StyleOption, Record<LengthOption, string[][]>> = {
   },
 };
 
-function readStorage<T>(key: string, fallback: T) {
-  if (typeof window === "undefined") return fallback;
-  const stored = window.localStorage.getItem(key);
-  if (!stored) return fallback;
-  return stored as T;
-}
-
-function readStoredProgression() {
-  if (typeof window === "undefined") return null;
-  const stored = window.localStorage.getItem(STORAGE_KEYS.last);
-  if (!stored) return null;
-  try {
-    return JSON.parse(stored) as ProgressionResult;
-  } catch (error) {
-    console.warn("Unable to parse stored progression", error);
-    return null;
-  }
-}
-
 function formatChordName(root: NoteName, type: ChordType) {
   switch (type) {
     case "Major":
@@ -181,69 +163,22 @@ function formatChordName(root: NoteName, type: ChordType) {
 }
 
 export default function ProgressionsClient() {
-  const [root, setRoot] = useState<NoteName>(DEFAULTS.root);
-  const [tonality, setTonality] = useState<Tonality>(DEFAULTS.tonality);
-  const [style, setStyle] = useState<StyleOption>(DEFAULTS.style);
-  const [length, setLength] = useState<LengthOption>(DEFAULTS.length);
-  const [progression, setProgression] = useState<ProgressionResult | null>(null);
+  const [root, setRoot] = useStoredPreference(STORAGE_KEYS.root, DEFAULTS.root);
+  const [tonality, setTonality] = useStoredPreference(STORAGE_KEYS.tonality, DEFAULTS.tonality);
+  const [style, setStyle] = useStoredPreference(STORAGE_KEYS.style, DEFAULTS.style);
+  const [storedLength, setStoredLength] = useStoredPreference(STORAGE_KEYS.length, DEFAULTS.length.toString());
+  const [storedProgression, saveProgression] = useStoredPreference<string>(STORAGE_KEYS.last, "");
   const [templateIndex, setTemplateIndex] = useState(0);
-
-  const diatonicChords = useMemo(() => buildDiatonicChords(root, tonality), [root, tonality]);
-  const diatonicLookup = useMemo(() => {
-    return new Map(
-      diatonicChords.map((entry) => [entry.numeral.replace("°", "").toLowerCase(), entry])
-    );
-  }, [diatonicChords]);
-
-  useEffect(() => {
-    setRoot(readStorage(STORAGE_KEYS.root, DEFAULTS.root));
-    setTonality(readStorage(STORAGE_KEYS.tonality, DEFAULTS.tonality));
-    setStyle(readStorage(STORAGE_KEYS.style, DEFAULTS.style));
-    const storedLength = readStorage(STORAGE_KEYS.length, DEFAULTS.length.toString());
-    setLength(storedLength === "8" ? 8 : 4);
-    const storedProgression = readStoredProgression();
-    if (storedProgression) {
-      setProgression(storedProgression);
-    }
-  }, []);
-
-  useEffect(() => {
-    window.localStorage.setItem(STORAGE_KEYS.root, root);
-  }, [root]);
-
-  useEffect(() => {
-    window.localStorage.setItem(STORAGE_KEYS.tonality, tonality);
-  }, [tonality]);
-
-  useEffect(() => {
-    window.localStorage.setItem(STORAGE_KEYS.style, style);
-  }, [style]);
-
-  useEffect(() => {
-    window.localStorage.setItem(STORAGE_KEYS.length, length.toString());
-  }, [length]);
-
-  useEffect(() => {
-    if (progression) {
-      window.localStorage.setItem(STORAGE_KEYS.last, JSON.stringify(progression));
-    }
-  }, [progression]);
-
-  useEffect(() => {
-    if (!progression) return;
-    const updated = buildProgression(progression.romanNumerals);
-    setProgression(updated);
-  }, [root, tonality]);
-
-  useEffect(() => {
-    setTemplateIndex(0);
-  }, [style, length]);
+  const length: LengthOption = storedLength === "8" ? 8 : 4;
+  const diatonicLookup = new Map(
+    buildDiatonicChords(root, tonality).map((entry) => [entry.numeral.replace("°", "").toLowerCase(), entry]),
+  );
 
   const resolveRoman = (roman: string) => {
     const romanLower = roman.toLowerCase();
 
     if (roman.includes("/")) {
-      const [, targetNumeral] = roman.split("/");
+      const [, targetNumeral = ""] = roman.split("/");
       const targetBase = targetNumeral.replace(/maj7|m7|7/gi, "").replace(/°/g, "");
       const targetKey = targetBase.replace(/[^IViv]/g, "").toLowerCase();
       const targetEntry = diatonicLookup.get(targetKey);
@@ -288,19 +223,26 @@ export default function ProgressionsClient() {
     };
   };
 
-  const generateProgression = (next = false) => {
+  let progression: ProgressionResult | null = null;
+  if (storedProgression) {
+    try {
+      const stored: ProgressionResult = JSON.parse(storedProgression);
+      if (Array.isArray(stored?.romanNumerals) && stored.romanNumerals.every((item) => typeof item === "string" && item.length > 0)) {
+        progression = buildProgression(stored.romanNumerals);
+      }
+    } catch {
+      // Ignore invalid saved data.
+    }
+  }
+
+  function generateProgression(next = false) {
     const templates = PROGRESSION_TEMPLATES[style][length];
     const index = next ? (templateIndex + 1) % templates.length : templateIndex;
     setTemplateIndex(index);
-    setProgression(buildProgression(templates[index]));
-  };
+    saveProgression(JSON.stringify(buildProgression(templates[index])));
+  }
 
-  const altSuggestions = useMemo(() => {
-    if (!progression) return [];
-    return ALT_TEMPLATES[style][length]
-      .slice(0, 2)
-      .map((template) => buildProgression(template));
-  }, [length, progression, style]);
+  const altSuggestions = progression ? ALT_TEMPLATES[style][length].slice(0, 2).map(buildProgression) : [];
 
   return (
     <div className="mt-10 grid gap-6 lg:grid-cols-[320px_1fr]">
@@ -314,8 +256,14 @@ export default function ProgressionsClient() {
         lengths={LENGTH_OPTIONS}
         onRootChange={setRoot}
         onTonalityChange={setTonality}
-        onStyleChange={setStyle}
-        onLengthChange={setLength}
+        onStyleChange={(nextStyle) => {
+          setStyle(nextStyle);
+          setTemplateIndex(0);
+        }}
+        onLengthChange={(nextLength) => {
+          setStoredLength(nextLength.toString());
+          setTemplateIndex(0);
+        }}
         onGenerate={() => generateProgression(false)}
         onRegenerate={() => generateProgression(true)}
         canRegenerate={Boolean(progression)}
