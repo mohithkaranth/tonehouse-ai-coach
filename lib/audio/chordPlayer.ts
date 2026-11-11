@@ -10,12 +10,10 @@ const NOTE_INDEX = new Map<string, number>(NOTE_ORDER.map((note, index) => [note
 
 let sharedAudioContext: AudioContext | null = null;
 
-function getAudioContext() {
+export function createAudioContext() {
   if (typeof window === "undefined") {
     throw new Error("AudioContext is only available in the browser.");
   }
-
-  if (sharedAudioContext) return sharedAudioContext;
 
   const AudioContextConstructor = window.AudioContext ??
     (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
@@ -24,8 +22,11 @@ function getAudioContext() {
     throw new Error("Web Audio API is not supported in this browser.");
   }
 
-  sharedAudioContext = new AudioContextConstructor();
-  return sharedAudioContext;
+  return new AudioContextConstructor();
+}
+
+function getAudioContext() {
+  return sharedAudioContext ??= createAudioContext();
 }
 
 async function unlockAudioContext(context: AudioContext) {

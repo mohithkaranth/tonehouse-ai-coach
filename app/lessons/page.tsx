@@ -1,7 +1,9 @@
+import { requirePaidPage } from "@/lib/getUserAccessLevel";
 import Link from "next/link";
 import { listLessons } from "@/lib/lessons";
 
-export default function LessonsIndexPage() {
+export default async function LessonsIndexPage() {
+  await requirePaidPage("/lessons");
   const lessons = listLessons();
 
   return (

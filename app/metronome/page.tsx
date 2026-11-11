@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { createAudioContext } from "@/lib/audio/chordPlayer";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 function clamp(n: number, min: number, max: number) {
@@ -24,8 +25,7 @@ export default function MetronomePage() {
 
   function getAudioCtx() {
     if (!audioCtxRef.current) {
-      audioCtxRef.current = new (window.AudioContext ||
-        (window as any).webkitAudioContext)();
+      audioCtxRef.current = createAudioContext();
     }
     return audioCtxRef.current;
   }

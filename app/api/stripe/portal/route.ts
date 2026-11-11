@@ -1,45 +1,27 @@
-import { NextResponse } from "next/server"
-import Stripe from "stripe"
-import { getServerSession } from "next-auth"
-import { authOptions } from "@/lib/auth"
-import { prisma } from "@/lib/prisma"
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: "2026-02-25.clover",
-})
+import { NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { getMembership } from "@/lib/hasFullAccess";
+import { billingUrl, getStripe } from "@/lib/stripe";
 
 export async function POST() {
   try {
-    const session = await getServerSession(authOptions)
+    const session = await getServerSession(authOptions);
+    const email = session?.user?.email;
+    if (!email) return NextResponse.json({ error: "Sign in to continue." }, { status: 401 });
 
-    if (!session?.user?.email) {
-      return NextResponse.json({ error: "Not authenticated" }, { status: 401 })
-    }
-
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
-    })
-
+    const { user } = await getMembership(email);
     if (!user?.stripeCustomerId) {
-      return NextResponse.json(
-        { error: "No Stripe customer found" },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: "No billing account was found." }, { status: 404 });
     }
 
-    const portalSession = await stripe.billingPortal.sessions.create({
+    const portal = await getStripe().billingPortal.sessions.create({
       customer: user.stripeCustomerId,
-      return_url: "https://coach.tonehouse.sg",
-    })
-
-    return NextResponse.json({ url: portalSession.url })
-
+      return_url: billingUrl("/billing"),
+    });
+    return NextResponse.json({ url: portal.url });
   } catch (error) {
-    console.error("Stripe portal error:", error)
-
-    return NextResponse.json(
-      { error: "Unable to create billing portal session" },
-      { status: 500 }
-    )
+    console.error("Stripe portal failed", { name: error instanceof Error ? error.name : "Unknown" });
+    return NextResponse.json({ error: "Unable to open the billing portal." }, { status: 503 });
   }
 }

@@ -46,6 +46,10 @@ export default function LessonClient({
         `/api/youtube-search?q=${encodeURIComponent(query)}`
       );
       const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || "Failed to fetch videos");
+        return;
+      }
       setVideos(data.results || []);
     } catch {
       setError("Failed to fetch videos");

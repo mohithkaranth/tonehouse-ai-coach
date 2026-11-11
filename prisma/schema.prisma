@@ -40,3 +40,11 @@ model Subscription {
 
   user User @relation(fields: [userId], references: [id])
 }
+
+model ApiRateLimit {
+  key         String   @id
+  windowStart DateTime @db.Timestamptz(3)
+  count       Int
+
+  @@index([windowStart])
+}

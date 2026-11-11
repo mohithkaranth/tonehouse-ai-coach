@@ -17,8 +17,12 @@ type MeStats = {
   createdAt: string;
   lastLoginAt: string | null;
   loginCount: number;
-  subscriptionStatus?: string;
-  currentPeriodEnd?: string | null;
+  isBeta: boolean;
+  canManageBilling: boolean;
+  subscriptionStatus: string | null;
+  currentPeriodEnd: string | null;
+  trialEnd: string | null;
+  cancelAtPeriodEnd: boolean;
 };
 
 function fmt(iso?: string | null) {
@@ -51,31 +55,30 @@ export default function GlobalHeader() {
   const { data: session, status } = useSession();
   const [open, setOpen] = useState(false);
 
-  const [stats, setStats] = useState<MeStats | null>(null);
-  const [loading, setLoading] = useState(false);
-
+  const [account, setAccount] = useState<{ email: string; stats: MeStats | null } | null>(null);
+  const email = session?.user?.email;
+  const stats = account?.email === email ? account?.stats : null;
+  const loading = Boolean(open && email && account?.email !== email);
   const inAppBrowser = isLikelyInAppBrowser();
 
   useEffect(() => {
-    if (!open || !session?.user || stats || loading) return;
+    if (!open || !email) return;
+    const accountEmail = email;
+    const controller = new AbortController();
 
-    (async () => {
+    async function loadStats() {
       try {
-        setLoading(true);
-        const res = await fetch("/api/me", { cache: "no-store" });
-        if (!res.ok) return;
-        const data = (await res.json()) as MeStats;
-        setStats(data);
-      } finally {
-        setLoading(false);
+        const res = await fetch("/api/me", { cache: "no-store", signal: controller.signal });
+        const stats = res.ok ? await res.json() as MeStats : null;
+        if (!controller.signal.aborted) setAccount({ email: accountEmail, stats });
+      } catch {
+        if (!controller.signal.aborted) setAccount({ email: accountEmail, stats: null });
       }
-    })();
-  }, [open, session, stats, loading]);
+    }
 
-  const subscriptionActive =
-    stats?.subscriptionStatus &&
-    stats?.currentPeriodEnd &&
-    new Date(stats.currentPeriodEnd) > new Date();
+    void loadStats();
+    return () => controller.abort();
+  }, [open, email]);
 
   return (
     <div className="fixed right-4 top-4 z-50 sm:right-6 sm:top-6">
@@ -132,6 +135,8 @@ export default function GlobalHeader() {
 
               <div className="my-2 h-px bg-zinc-800" />
 
+              {stats?.isBeta && <p className="px-3 py-2 text-xs">Full Access (Beta)</p>}
+
               {stats?.subscriptionStatus && (
                 <>
                   <div className="px-3 py-2 text-xs">
@@ -146,11 +151,13 @@ export default function GlobalHeader() {
                       </span>
                     </div>
 
-                    {stats.currentPeriodEnd && (
+                    {(stats.currentPeriodEnd || stats.trialEnd) && (
                       <div className="flex justify-between mt-1">
-                        <span className="text-zinc-400">Renews</span>
+                        <span className="text-zinc-400">
+                          {stats.cancelAtPeriodEnd ? "Ends" : stats.subscriptionStatus === "trialing" ? "Trial ends" : "Renews"}
+                        </span>
                         <span className="text-zinc-200">
-                          {fmt(stats.currentPeriodEnd)}
+                          {fmt(stats.subscriptionStatus === "trialing" ? stats.trialEnd ?? stats.currentPeriodEnd : stats.currentPeriodEnd)}
                         </span>
                       </div>
                     )}
@@ -166,36 +173,10 @@ export default function GlobalHeader() {
                 </div>
               )}
 
-              {subscriptionActive && (
-                <button
-                  onClick={async () => {
-                    try {
-                      const res = await fetch("/api/stripe/portal", {
-                        method: "POST",
-                      });
-
-                      if (!res.ok) {
-                        alert("Unable to open billing portal. Please try again.");
-                        return;
-                      }
-
-                      const data = await res.json();
-
-                      if (data?.url) {
-                        window.location.href = data.url;
-                      } else {
-                        alert(
-                          "Billing portal unavailable. Please contact support."
-                        );
-                      }
-                    } catch {
-                      alert("Network error. Please try again.");
-                    }
-                  }}
-                  className="w-full rounded-lg px-3 py-2 text-left hover:bg-zinc-900"
-                >
+              {stats?.canManageBilling && (
+                <Link href="/billing" className="block w-full rounded-lg px-3 py-2 text-left hover:bg-zinc-900">
                   Manage Billing
-                </button>
+                </Link>
               )}
 
               <button

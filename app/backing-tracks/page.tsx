@@ -230,6 +230,7 @@ export default function BackingTracksPage() {
 
   function handlePresetClick(preset: Preset) {
     setForm(preset.form); // auto-fill the form
+    setAnyTempo(!preset.form.tempo);
     const q = buildQuery(preset.form);
     pushRecent(q);
     openSearch(q);
@@ -247,44 +248,47 @@ export default function BackingTracksPage() {
 
   // Load saved preferences + recents + favorites + query params
   useEffect(() => {
-    try {
-      // 1) load from localStorage
-      const prefs = localStorage.getItem(PREFS_KEY);
-      const recents = localStorage.getItem(RECENTS_KEY);
-      const favs = localStorage.getItem(FAVS_KEY);
+    const frame = window.requestAnimationFrame(() => {
+      try {
+        // 1) load from localStorage
+        const prefs = localStorage.getItem(PREFS_KEY);
+        const recents = localStorage.getItem(RECENTS_KEY);
+        const favs = localStorage.getItem(FAVS_KEY);
 
-      const storedForm = safeJsonParse<FormState>(prefs, form);
-      const storedRecents = safeJsonParse<string[]>(recents, []);
-      const storedFavs = safeJsonParse<Favorite[]>(favs, []);
+        const storedForm = safeJsonParse<FormState>(prefs, form);
+        const storedRecents = safeJsonParse<string[]>(recents, []);
+        const storedFavs = safeJsonParse<Favorite[]>(favs, []);
 
-      // 2) apply query params as highest priority (coach handoff)
-      const params = new URLSearchParams(window.location.search);
-      const qpInstrument = params.get("instrument");
-      const qpStyle = params.get("style");
-      const qpKey = params.get("key");
-      const qpTempo = params.get("tempo");
+        // 2) apply query params as highest priority (coach handoff)
+        const params = new URLSearchParams(window.location.search);
+        const qpInstrument = params.get("instrument");
+        const qpStyle = params.get("style");
+        const qpKey = params.get("key");
+        const qpTempo = params.get("tempo");
 
-      const nextForm: FormState = {
-        instrument:
-          qpInstrument && INSTRUMENTS.some((i) => i.value === qpInstrument)
-            ? qpInstrument
-            : storedForm.instrument,
-        style: qpStyle && STYLES.some((s) => s.value === qpStyle) ? qpStyle : storedForm.style,
-        key: qpKey && KEYS.includes(qpKey) ? qpKey : storedForm.key,
-        tempo: qpTempo ? normalizeTempoInput(qpTempo) : storedForm.tempo,
-      };
+        const nextForm: FormState = {
+          instrument:
+            qpInstrument && INSTRUMENTS.some((i) => i.value === qpInstrument)
+              ? qpInstrument
+              : storedForm.instrument,
+          style: qpStyle && STYLES.some((s) => s.value === qpStyle) ? qpStyle : storedForm.style,
+          key: qpKey && KEYS.includes(qpKey) ? qpKey : storedForm.key,
+          tempo: qpTempo ? normalizeTempoInput(qpTempo) : storedForm.tempo,
+        };
 
-      setForm(nextForm);
-      setRecentSearches(storedRecents);
-      setFavorites(storedFavs);
+        setForm(nextForm);
+        setRecentSearches(storedRecents);
+        setFavorites(storedFavs);
 
-      // Any-tempo toggle follows whether tempo exists
-      setAnyTempo(!nextForm.tempo);
-    } catch {
-      // ignore bad data
-    } finally {
-      setHydrated(true);
-    }
+        // Any-tempo toggle follows whether tempo exists
+        setAnyTempo(!nextForm.tempo);
+      } catch {
+        // ignore bad data
+      } finally {
+        setHydrated(true);
+      }
+    });
+    return () => window.cancelAnimationFrame(frame);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -305,16 +309,6 @@ export default function BackingTracksPage() {
     if (!hydrated) return;
     localStorage.setItem(FAVS_KEY, JSON.stringify(favorites));
   }, [hydrated, favorites]);
-
-  // Keep tempo in sync with Any tempo toggle
-  useEffect(() => {
-    if (!hydrated) return;
-    setForm((prev) => ({
-      ...prev,
-      tempo: anyTempo ? "" : prev.tempo || "90",
-    }));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [anyTempo]);
 
   return (
     <main className="min-h-screen bg-zinc-950 text-zinc-50 px-6 py-16">
@@ -460,7 +454,11 @@ export default function BackingTracksPage() {
               </div>
 
               <button
-                onClick={() => setAnyTempo((v) => !v)}
+                onClick={() => {
+                  const next = !anyTempo;
+                  setAnyTempo(next);
+                  setForm((prev) => ({ ...prev, tempo: next ? "" : prev.tempo || "90" }));
+                }}
                 className="rounded-full border border-zinc-800 bg-zinc-950/40 px-4 py-2 text-sm text-zinc-200 hover:bg-zinc-950 transition"
                 title="Toggle any tempo"
               >
@@ -575,6 +573,7 @@ export default function BackingTracksPage() {
                       <button
                         onClick={() => {
                           setForm(f.form);
+                          setAnyTempo(!f.form.tempo);
                           pushRecent(f.query);
                           openSearch(f.query);
                         }}

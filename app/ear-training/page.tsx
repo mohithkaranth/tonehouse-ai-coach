@@ -1,7 +1,9 @@
+import { requirePaidPage } from "@/lib/getUserAccessLevel";
 import Link from "next/link";
 import EarTrainingClient from "@/components/ear-training/EarTrainingClient";
 
-export default function EarTrainingPage() {
+export default async function EarTrainingPage() {
+  await requirePaidPage("/ear-training");
   return (
     <main className="min-h-screen bg-zinc-950 text-zinc-50">
       <div className="mx-auto max-w-5xl px-6 py-16">

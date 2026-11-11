@@ -1,57 +1,22 @@
 import { NextResponse } from "next/server";
+import { checkRateLimit } from "@/lib/api-rate-limit";
+import { requirePaidApi } from "@/lib/getUserAccessLevel";
+import { normalizeVideoQuery, searchVideos } from "@/lib/youtube";
 
-export async function GET(req: Request) {
+export async function GET(request: Request) {
   try {
-    const { searchParams } = new URL(req.url);
-    const q =
-      searchParams.get("q") || "beginner guitar holding guitar";
+    const access = await requirePaidApi();
+    if (access.response) return access.response;
 
-    const apiKey = process.env.YOUTUBE_API_KEY;
+    const query = normalizeVideoQuery(new URL(request.url).searchParams.get("q") || "beginner guitar holding guitar");
+    if (!query) return NextResponse.json({ results: [] });
 
-    if (!apiKey) {
-      return NextResponse.json(
-        { error: "Missing YOUTUBE_API_KEY" },
-        { status: 500 }
-      );
-    }
+    const limited = await checkRateLimit(access.email, "youtube");
+    if (limited) return limited;
 
-    const url =
-      "https://www.googleapis.com/youtube/v3/search" +
-      `?part=snippet&type=video&maxResults=3` +
-      `&q=${encodeURIComponent(q)}` +
-      `&key=${encodeURIComponent(apiKey)}`;
-
-    const response = await fetch(url, {
-      cache: "no-store"
-    });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      return NextResponse.json(
-        { error: "YouTube API error", details: data },
-        { status: response.status }
-      );
-    }
-
-    const results =
-      data?.items?.map((item: any) => ({
-        youtubeId: item?.id?.videoId,
-        title: item?.snippet?.title,
-        channelTitle: item?.snippet?.channelTitle,
-        thumbnail:
-          item?.snippet?.thumbnails?.medium?.url ||
-          item?.snippet?.thumbnails?.default?.url
-      })) ?? [];
-
-    return NextResponse.json({
-      query: q,
-      results
-    });
-  } catch (err: any) {
-    return NextResponse.json(
-      { error: "Server error", message: err?.message },
-      { status: 500 }
-    );
+    return NextResponse.json({ query, results: await searchVideos(query) });
+  } catch {
+    console.warn("Lesson video search failed.");
+    return NextResponse.json({ error: "Videos are temporarily unavailable." }, { status: 503 });
   }
 }
