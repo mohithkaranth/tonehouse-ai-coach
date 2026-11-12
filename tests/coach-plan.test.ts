@@ -49,6 +49,23 @@ describe("practice plans", () => {
     if (instrument === "Bass") expect(prompt).toContain("Play one note at a time");
   });
 
+  it.each([
+    ["Beginner", "Isolate a short excerpt"],
+    ["Intermediate", "Practise the lead-in and exit"],
+    ["Advanced", "Use the full phrase or a realistic performance context"],
+  ])("gives %s Next Session a distinct practice task", (level, guidance) => {
+    const input = coachInputSchema.parse({
+      instrument: "Bass",
+      mode: "next_session",
+      level,
+      lastSessionNotes: "I rush the final two bars.",
+    });
+    const prompt = buildCoachPrompt(input, false);
+    expect(prompt).toContain("last session notes");
+    expect(prompt).toContain(guidance);
+    expect(buildCoachPrompt({ ...input, mode: "practice_plan" }, false)).not.toContain(guidance);
+  });
+
   it("rejects a wrong day count, incorrect daily totals and unplayable durations", () => {
     expect(validatePracticePlan(draft, coachInputSchema.parse({ daysPerWeek: 2, timePerDay: 15 }))).toBeNull();
     expect(validatePracticePlan(draft, coachInputSchema.parse({ daysPerWeek: 1, timePerDay: 30 }))).toBeNull();
