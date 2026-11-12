@@ -54,11 +54,25 @@ export function transposeNote(root: NoteName, semitones: number) {
   return transpose(rootIndex, semitones);
 }
 
+const NOTE_LETTERS = ["C", "D", "E", "F", "G", "A", "B"] as const;
+
+export function spellDiatonicNote(root: string, note: NoteName, degreeOffset: number) {
+  const rootLetter = NOTE_LETTERS.findIndex((letter) => root.startsWith(letter));
+  const letter = NOTE_LETTERS[(rootLetter + degreeOffset) % NOTE_LETTERS.length];
+  const alteration = (CHROMATIC_NOTES.indexOf(note) - CHROMATIC_NOTES.indexOf(letter) + 18) % 12 - 6;
+  return letter + (alteration < 0 ? "b".repeat(-alteration) : "#".repeat(alteration));
+}
+
 export function buildChord(root: NoteName, type: ChordType) {
   const rootIndex = noteIndexMap.get(root);
   if (rootIndex == null) return [];
 
   return CHORD_INTERVALS[type].map((interval) => transpose(rootIndex, interval));
+}
+
+export function buildSpelledChord(root: NoteName, type: ChordType) {
+  const degrees = [0, type === "Sus2" ? 1 : type === "Sus4" ? 3 : 2, 4, 6];
+  return buildChord(root, type).map((note, index) => spellDiatonicNote(root, note, degrees[index]));
 }
 
 export function buildScale(root: NoteName, type: ScaleType) {
@@ -73,10 +87,10 @@ const TONALITY_SCALES: Record<Tonality, ScaleType> = {
   Minor: "Natural Minor (Aeolian)",
 };
 
-const DIATONIC_TRIADS: Record<Tonality, ChordType[]> = {
+const DIATONIC_TRIADS = {
   Major: ["Major", "Minor", "Minor", "Major", "Major", "Minor", "Diminished"],
   Minor: ["Minor", "Diminished", "Major", "Minor", "Minor", "Major", "Major"],
-};
+} as const satisfies Record<Tonality, readonly ChordType[]>;
 
 const DIATONIC_NUMERALS: Record<Tonality, string[]> = {
   Major: ["I", "ii", "iii", "IV", "V", "vi", "vii°"],

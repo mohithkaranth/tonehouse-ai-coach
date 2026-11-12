@@ -1,7 +1,8 @@
 "use client";
 
 import { playChord } from "@/lib/audio/chordPlayer";
-import { buildChord } from "@/lib/music";
+import { buildChord, buildSpelledChord, CHROMATIC_NOTES } from "@/lib/music";
+import { getGuitarShape } from "@/lib/guitar-shapes";
 import type { ChordType, Instrument, NoteName } from "./types";
 
 const chordTypes: ChordType[] = [
@@ -16,90 +17,12 @@ const chordTypes: ChordType[] = [
   "Augmented",
 ];
 
-const NEEDS_BARRE = ["F", "B", "C#", "D#", "F#", "G#", "A#"];
-
-const GUITAR_SHAPES: Record<string, string[]> = {
-  "C|Major": ["x32010"],
-  "G|Major": ["320003"],
-  "D|Major": ["xx0232"],
-  "A|Major": ["x02220"],
-  "E|Major": ["022100"],
-
-  "C|Minor": ["x35543"],
-  "D|Minor": ["xx0231"],
-  "E|Minor": ["022000"],
-  "A|Minor": ["x02210"],
-  "G|Minor": ["355333"],
-
-  "C|Dominant 7": ["x32310"],
-  "G|Dominant 7": ["320001"],
-  "D|Dominant 7": ["xx0212"],
-  "A|Dominant 7": ["x02020"],
-  "E|Dominant 7": ["020100"],
-
-  "C|Major 7": ["x32000"],
-  "G|Major 7": ["320002"],
-  "D|Major 7": ["xx0222"],
-  "A|Major 7": ["x02120"],
-  "E|Major 7": ["021100"],
-
-  "D|Minor 7": ["xx0211"],
-  "A|Minor 7": ["x02010"],
-  "E|Minor 7": ["022030"],
-  "G|Minor 7": ["353333"],
-
-  "C|Sus2": ["x30010"],
-  "D|Sus2": ["xx0230"],
-  "G|Sus2": ["320033"],
-  "A|Sus2": ["x02200"],
-
-  "C|Sus4": ["x33011"],
-  "D|Sus4": ["xx0233"],
-  "G|Sus4": ["330013"],
-  "A|Sus4": ["x02230"],
-};
-
-const BARRE_SHAPES: Record<ChordType, string> = {
-  Major: "E-shape barre",
-  Minor: "Em-shape barre",
-  "Dominant 7": "E7-shape barre",
-  "Major 7": "Emaj7-shape barre",
-  "Minor 7": "Em7-shape barre",
-  Sus2: "Esus2-shape barre",
-  Sus4: "Esus4-shape barre",
-  Diminished: "Diminished barre",
-  Augmented: "Augmented barre",
-};
-
-const noteOrder = [
-  "C",
-  "C#",
-  "D",
-  "D#",
-  "E",
-  "F",
-  "F#",
-  "G",
-  "G#",
-  "A",
-  "A#",
-  "B",
-] as const;
-
-function getBarreFret(root: NoteName) {
-  const rootIndex = noteOrder.indexOf(root);
-  const eIndex = noteOrder.indexOf("E");
-  return rootIndex >= eIndex
-    ? rootIndex - eIndex
-    : rootIndex + 12 - eIndex;
-}
-
 function buildOctaveNotes(tones: NoteName[], baseOctave: number) {
   let octave = baseOctave;
-  let last = noteOrder.indexOf(tones[0]);
+  let last = CHROMATIC_NOTES.indexOf(tones[0]);
 
   return tones.map((note, i) => {
-    const idx = noteOrder.indexOf(note);
+    const idx = CHROMATIC_NOTES.indexOf(note);
     if (i > 0 && idx <= last) octave++;
     last = idx;
     return `${note}${octave}`;
@@ -121,15 +44,9 @@ export default function ChordResult({
 }: Props) {
   const tones = buildChord(root, type);
   const chordName = `${root} ${type}`;
-  const tonesDisplay = tones.join("–");
+  const tonesDisplay = buildSpelledChord(root, type).join("–");
 
-  const needsBarre = NEEDS_BARRE.includes(root);
-
-  const shapes =
-    GUITAR_SHAPES[`${root}|${type}`] ??
-    (needsBarre
-      ? [`${BARRE_SHAPES[type]} @ fret ${getBarreFret(root)}`]
-      : []);
+  const shape = getGuitarShape(root, type);
 
   const handlePlayChord = async () => {
     // 🎸 BASS — NO CHORDS
@@ -188,21 +105,11 @@ export default function ChordResult({
             Guitar shapes
           </p>
 
-          {shapes.length > 0 ? (
-            <ul className="mt-2 space-y-2 text-sm text-zinc-400">
-              {shapes.map((shape) => (
-                <li key={shape}>
-                  <span className="rounded-lg border border-zinc-800 bg-zinc-900/60 px-2 py-1 font-mono text-xs">
-                    {shape}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="mt-2 text-sm text-zinc-400">
-              No shape available.
-            </p>
-          )}
+          <p className="mt-2 text-sm text-zinc-400">
+            <span className="rounded-lg border border-zinc-800 bg-zinc-900/60 px-2 py-1 font-mono text-xs">
+              {shape}
+            </span>
+          </p>
         </div>
       )}
     </div>
