@@ -1,9 +1,10 @@
+import { coachModeLabels } from "./coach-mode";
 import type { PracticePlan } from "./coach-plan";
 
 export function planToMarkdown(plan: PracticePlan): string {
   const lines: string[] = [];
 
-  lines.push(`# ${plan.instrument} – ${plan.mode.replaceAll("_", " ")}`);
+  lines.push(`# ${plan.instrument} – ${coachModeLabels[plan.mode]}`);
   lines.push(``);
   lines.push(`**Level:** ${plan.level}`);
   lines.push(`**Genre:** ${plan.genre}`);

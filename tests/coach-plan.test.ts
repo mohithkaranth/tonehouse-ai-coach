@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { coachInputSchema, validatePracticePlan } from "@/lib/coach-plan";
+import { planToMarkdown } from "@/lib/coach-markdown";
+import { buildCoachPrompt } from "@/lib/prompts";
 
 const draft = {
   focusMetric: "Play eight clean measures at 80 BPM",
@@ -15,9 +17,36 @@ const draft = {
 };
 
 describe("practice plans", () => {
-  it.each(["Guitar", "Bass", "Drums", "Keyboards", "Vocals"])("validates time and preserves %s input", (instrument) => {
-    const input = coachInputSchema.parse({ instrument, timePerDay: "15 minutes", daysPerWeek: "1" });
-    expect(validatePracticePlan(draft, input)).toMatchObject({ instrument, mode: "practice_plan" });
+  const instruments = ["Guitar", "Bass", "Drums", "Keyboards", "Vocals"];
+  const modes = [
+    ["practice_plan", "Practice Plan", "balanced plan"],
+    ["warmups", "Warmups", "Use warmups"],
+    ["chords", "Grooves / Ideas", "repeatable musical ideas"],
+    ["next_session", "Next Session", "last session notes"],
+  ];
+
+  describe.each(instruments)("%s", (instrument) => {
+    it.each(modes)("uses the right heading and instructions for %s", (mode, label, instruction) => {
+      const input = coachInputSchema.parse({ instrument, mode, timePerDay: "15 minutes", daysPerWeek: "1" });
+      const plan = validatePracticePlan(draft, input);
+      expect(plan).toMatchObject({ instrument, mode });
+      expect(planToMarkdown(plan!)).toMatch(`# ${instrument} – ${label}
+`);
+      expect(buildCoachPrompt(input, false)).toContain(instruction);
+    });
+  });
+
+  it.each([
+    ["Guitar", "guitar riffs"],
+    ["Bass", "single-note bass grooves"],
+    ["Drums", "kick, snare, and hi-hat"],
+    ["Keyboards", "left- and right-hand roles"],
+    ["Vocals", "singable melodic or rhythmic phrases"],
+  ])("prompts for instrument-specific %s groove exercises", (instrument, guidance) => {
+    const input = coachInputSchema.parse({ instrument, mode: "chords" });
+    const prompt = buildCoachPrompt(input, false);
+    expect(prompt).toContain(guidance);
+    if (instrument === "Bass") expect(prompt).toContain("Play one note at a time");
   });
 
   it("rejects a wrong day count, incorrect daily totals and unplayable durations", () => {

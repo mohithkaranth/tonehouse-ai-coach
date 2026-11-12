@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
+import { coachModeLabels } from "@/lib/coach-mode";
 import type { CoachMode, PracticePlan } from "@/lib/coach-plan";
 import { planToMarkdown } from "@/lib/coach-markdown";
 import { fallbackVideos, type VideoRec } from "@/lib/coach-videos";
@@ -73,7 +74,7 @@ export default function CoachForm({
     : "";
 
   const smartYouTubeSearchUrl = useMemo(() => {
-    const q = `${instrument} ${level} ${genre} ${mode.replaceAll("_", " ")} ${goals}`;
+    const q = `${instrument} ${level} ${genre} ${coachModeLabels[mode]} ${goals}`;
     return `https://www.youtube.com/results?search_query=${encodeURIComponent(q)}`;
   }, [instrument, level, genre, mode, goals]);
 
@@ -144,10 +145,9 @@ export default function CoachForm({
             onChange={(e) => setMode(e.target.value as CoachMode)}
             className={field}
           >
-            <option value="practice_plan">Practice Plan</option>
-            <option value="warmups">Warmups</option>
-            <option value="chords">Grooves / Ideas</option>
-            <option value="next_session">Next Session</option>
+            {Object.entries(coachModeLabels).map(([value, label]) => (
+              <option key={value} value={value}>{label}</option>
+            ))}
           </select>
         </label>
 
