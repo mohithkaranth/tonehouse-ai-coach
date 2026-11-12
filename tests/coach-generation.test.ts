@@ -29,14 +29,17 @@ describe("OpenAI integration", () => {
       .mockResolvedValueOnce(providerPlan(10));
     vi.stubGlobal("fetch", fetch);
 
-    const input = coachInputSchema.parse({ instrument: "Drums", daysPerWeek: 1, timePerDay: 10 });
+    const input = coachInputSchema.parse({ instrument: "Bass", mode: "chords", daysPerWeek: 1, timePerDay: 10 });
     const plan = await generatePracticePlan(input);
 
-    expect(plan).toMatchObject({ instrument: "Drums", dayByDay: [{ day: 1 }] });
+    expect(plan).toMatchObject({ instrument: "Bass", dayByDay: [{ day: 1 }] });
     expect(fetch).toHaveBeenCalledTimes(2);
     const [url, request] = fetch.mock.calls[0];
     expect(String(url)).toContain("/responses");
-    expect(JSON.parse(request.body)).toMatchObject({
+    const payload = JSON.parse(request.body);
+    expect(JSON.parse(payload.input)).toMatchObject({ mode: "Grooves / Ideas" });
+    expect(payload.instructions).toContain("single-note bass grooves");
+    expect(payload).toMatchObject({
       model: "gpt-6-luna",
       store: false,
       text: { format: { name: "practice_plan", type: "json_schema", strict: true } },

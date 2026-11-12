@@ -2,6 +2,7 @@ import OpenAI from "openai";
 import { zodTextFormat } from "openai/helpers/zod";
 import { coachInputSchema, generatedPlanSchema, validatePracticePlan, type CoachInput } from "./coach-plan";
 import { buildCoachPrompt } from "./prompts";
+import { coachModeLabels } from "./coach-mode";
 
 export async function readCoachInput(request: Request, defaultInstrument: "Guitar" | "Drums") {
   const raw = await request.text();
@@ -23,7 +24,7 @@ export async function generatePracticePlan(input: CoachInput) {
     const response = await client.responses.create({
       model: process.env.OPENAI_COACH_MODEL || "gpt-6-luna",
       instructions: buildCoachPrompt(input, retry),
-      input: JSON.stringify(input),
+      input: JSON.stringify({ ...input, mode: coachModeLabels[input.mode] }),
       text: { format: zodTextFormat(generatedPlanSchema, "practice_plan") },
       max_output_tokens: 4000,
       store: false,
